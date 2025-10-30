@@ -289,7 +289,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
                   stream: FirebaseFirestore.instance
                       .collection('users')
-                      .where('category', whereIn: _selected.toList())
                       .snapshots(),
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) {
@@ -304,7 +303,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         child: Text('Erreur lors du chargement des utilisateurs'),
                       );
                     }
-                    final docs = snapshot.data?.docs ?? [];
+                    final docsAll = snapshot.data?.docs ?? [];
+                    final expanded = <String>{..._selected};
+                    if (expanded.contains('eleve')) expanded.add('élève');
+                    if (expanded.contains('élève')) expanded.add('eleve');
+                    final docs = docsAll.where((d) {
+                      final m = d.data();
+                      final cat = (m['category'] ?? '').toString().toLowerCase();
+                      final role = (m['role'] ?? '').toString().toLowerCase();
+                      final targets = expanded.map((e) => e.toLowerCase()).toSet();
+                      return targets.contains(cat) || targets.contains(role);
+                    }).toList();
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -317,9 +326,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           itemBuilder: (context, index) {
                             final d = docs[index];
                             final m = d.data();
-                            final name = (m['name'] ?? m['displayName'] ?? m['phone'] ?? d.id).toString();
+                            final first = (m['firstName'] ?? '').toString();
+                            final last = (m['lastName'] ?? '').toString();
+                            final full = [first, last].where((e) => e.isNotEmpty).join(' ').trim();
+                            final username = (m['username'] ?? '').toString();
+                            final displayName = (m['displayName'] ?? '').toString();
                             final phone = (m['phone'] ?? '').toString();
-                            final category = (m['category'] ?? '').toString();
+                            String name = username;
+                            if (name.isEmpty) name = displayName;
+                            if (name.isEmpty) name = full;
+                            if (name.isEmpty) name = phone;
+                            if (name.isEmpty) name = d.id;
+                            final category = (m['category'] ?? m['role'] ?? '').toString();
                             return ListTile(
                               leading: const Icon(Icons.person),
                               title: Text(name),
