@@ -42,10 +42,13 @@ dependencies:
   record: ^6.1.2
   just_audio: ^0.10.5
   permission_handler: ^12.0.1
-  go_router: ^16.2.5
+  go_router: ^17.0.0
   flutter_riverpod: ^3.0.3
   image_picker: ^1.2.0
-  flutter_local_notifications: ^17.2.2
+  flutter_local_notifications: ^19.5.0
+  intl: ^0.20.2
+  shimmer: ^3.0.0
+  http: ^1.2.2
 
 dev_dependencies:
   flutter_test:
@@ -56,7 +59,16 @@ dev_dependencies:
   # activated in the `analysis_options.yaml` file located at the root of your
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
-  flutter_lints: ^5.0.0
+  flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.4
+
+flutter_launcher_icons:
+  android: true
+  ios: false
+  image_path: assets/icon.png
+  # Pour Android adaptive (recommandé):
+  adaptive_icon_background: "#FFFFFF"   # ou assets/icon_bg.png
+  adaptive_icon_foreground: assets/icon_foreground.png
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -75,6 +87,7 @@ assets:
    - assets/icon_foreground.png
    - assets/hero-classroom.jpg
    - assets/bell.mp3
+   - assets/sounds/
   #   - images/a_dot_ham.jpeg
 
   # An image asset can refer to one or more resolution-specific "variants", see
@@ -90,6 +103,18 @@ assets:
   # example:
   # fonts:
   #   - family: Schyler
+  #     fonts:
+  #       - asset: fonts/Schyler-Regular.ttf
+  #       - asset: fonts/Schyler-Italic.ttf
+  #         style: italic
+  #   - family: Trajan Pro
+  #     fonts:
+  #       - asset: fonts/TrajanPro.ttf
+  #       - asset: fonts/TrajanPro_Bold.ttf
+  #         weight: 700
+  #
+  # For details regarding fonts from package dependencies,
+  # see https://flutter.dev/to/font-from-package
   #     fonts:
   #       - asset: fonts/Schyler-Regular.ttf
   #       - asset: fonts/Schyler-Italic.ttf

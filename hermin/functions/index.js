@@ -2,6 +2,37 @@ const functions = require("firebase-functions");
 const admin = require("firebase-admin");
 admin.initializeApp();
 
+// Envoie une notification FCM lors de la création d'un post avec image
+exports.onImagePostCreated = functions.firestore
+    .document("posts/{postId}")
+    .onCreate(async (snap, context) => {
+      try {
+        const data = snap.data();
+        if (!data) return;
+        // Vérifie la présence d'une image
+        const hasImage = Array.isArray(data.mediaUrls) ? data.mediaUrls.length > 0 : !!data.imageUrl;
+        if (!hasImage) return;
+
+        const title = "Administration";
+        const body = "Nouvelle image publiée !";
+        // Envoie à tous les utilisateurs abonnés au topic général
+        await admin.messaging().send({
+          topic: "all_users",
+          notification: { title, body },
+          data: {
+            type: "image",
+            postId: String(context.params.postId),
+          },
+          android: {
+            priority: "high",
+            notification: { channelId: "hermin_default" },
+          },
+        });
+      } catch (e) {
+        console.error("onImagePostCreated error", e);
+      }
+    });
+
 exports.syncCommentsCount = functions.firestore
     .document("posts/{postId}")
     .onWrite(async (change) => {

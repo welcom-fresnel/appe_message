@@ -72,16 +72,37 @@ class _AuthScreenState extends State<AuthScreen> {
         await user.updateDisplayName(display);
       }
       final uid = user.uid;
+      
+      // Générer les keywords pour la recherche
+      final keywords = <String>{};
+      if (first.isNotEmpty) {
+        keywords.add(first.toLowerCase());
+        for (int i = 1; i <= first.length; i++) {
+          keywords.add(first.toLowerCase().substring(0, i));
+        }
+      }
+      if (last.isNotEmpty) {
+        keywords.add(last.toLowerCase());
+        for (int i = 1; i <= last.length; i++) {
+          keywords.add(last.toLowerCase().substring(0, i));
+        }
+      }
+      final phone = _phoneController.text.trim();
+      if (phone.isNotEmpty) {
+        keywords.add(phone);
+      }
+      
       await FirebaseFirestore.instance.collection('users').doc(uid).set({
         'uid': uid,
         'username': display.isNotEmpty ? display : _emailController.text.trim(),
         'firstName': first,
         'lastName': last,
         'email': _emailController.text.trim(),
-        'phone': _phoneController.text.trim().isEmpty ? null : _phoneController.text.trim(),
+        'phone': phone.isEmpty ? null : phone,
         'category': _category,
         'role': _category,
         'photoUrl': user.photoURL,
+        'keywords': keywords.toList(), // Pour la recherche
         'createdAt': FieldValue.serverTimestamp(),
         'updatedAt': FieldValue.serverTimestamp(),
         'lastLoginAt': FieldValue.serverTimestamp(),
@@ -99,7 +120,9 @@ class _AuthScreenState extends State<AuthScreen> {
   Future<void> _resetPassword() async {
     final email = _emailController.text.trim();
     if (email.isEmpty) {
-      setState(() => _error = 'Entrez votre email pour réinitialiser le mot de passe');
+      setState(
+        () => _error = 'Entrez votre email pour réinitialiser le mot de passe',
+      );
       return;
     }
     setState(() {
@@ -119,7 +142,7 @@ class _AuthScreenState extends State<AuthScreen> {
       if (mounted) setState(() => _loading = false);
     }
   }
-  
+
   @override
   void dispose() {
     _emailController.dispose();
@@ -134,18 +157,12 @@ class _AuthScreenState extends State<AuthScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Hermine'),
-      leading: Image.asset("assets/logo.png"),
-      ),
+      appBar: AppBar(title: const Text('Hermine')),
       body: Stack(
         children: [
           Positioned.fill(
             child: Container(
               decoration: const BoxDecoration(
-                image: DecorationImage(
-                  image: AssetImage('assets/logo.png'),
-                  fit: BoxFit.cover,
-                ),
                 gradient: LinearGradient(
                   colors: [Color(0xFF1976D2), Color(0xFF64B5F6)],
                   begin: Alignment.topLeft,
@@ -178,7 +195,10 @@ class _AuthScreenState extends State<AuthScreen> {
           Center(
             child: SingleChildScrollView(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24.0,
+                  vertical: 16,
+                ),
                 child: Container(
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.85),
@@ -219,7 +239,8 @@ class _AuthScreenState extends State<AuthScreen> {
                                       borderSide: BorderSide.none,
                                     ),
                                   ),
-                                  validator: (v) => v == null || v.isEmpty ? 'Requis' : null,
+                                  validator: (v) =>
+                                      v == null || v.isEmpty ? 'Requis' : null,
                                 ),
                               ),
                               const SizedBox(width: 12),
@@ -239,7 +260,8 @@ class _AuthScreenState extends State<AuthScreen> {
                                       borderSide: BorderSide.none,
                                     ),
                                   ),
-                                  validator: (v) => v == null || v.isEmpty ? 'Requis' : null,
+                                  validator: (v) =>
+                                      v == null || v.isEmpty ? 'Requis' : null,
                                 ),
                               ),
                             ],
@@ -280,7 +302,8 @@ class _AuthScreenState extends State<AuthScreen> {
                               borderSide: BorderSide.none,
                             ),
                           ),
-                          validator: (v) => v == null || v.isEmpty ? 'Requis' : null,
+                          validator: (v) =>
+                              v == null || v.isEmpty ? 'Requis' : null,
                         ),
                         const SizedBox(height: 16),
                         TextFormField(
@@ -299,14 +322,19 @@ class _AuthScreenState extends State<AuthScreen> {
                             ),
                             suffixIcon: IconButton(
                               icon: Icon(
-                                _obscure ? Icons.visibility : Icons.visibility_off,
+                                _obscure
+                                    ? Icons.visibility
+                                    : Icons.visibility_off,
                                 color: const Color(0xFF1976D2),
                               ),
-                              onPressed: () => setState(() => _obscure = !_obscure),
+                              onPressed: () =>
+                                  setState(() => _obscure = !_obscure),
                             ),
                           ),
                           obscureText: _obscure,
-                          validator: (v) => v == null || v.length < 6 ? 'Min 6 caractères' : null,
+                          validator: (v) => v == null || v.length < 6
+                              ? 'Min 6 caractères'
+                              : null,
                         ),
                         if (_isSignUp) ...[
                           const SizedBox(height: 16),
@@ -326,7 +354,9 @@ class _AuthScreenState extends State<AuthScreen> {
                               ),
                             ),
                             obscureText: _obscure,
-                            validator: (v) => v != _passwordController.text ? 'Ne correspond pas' : null,
+                            validator: (v) => v != _passwordController.text
+                                ? 'Ne correspond pas'
+                                : null,
                           ),
                           const SizedBox(height: 16),
                           DropdownButtonFormField<String>(
@@ -345,8 +375,14 @@ class _AuthScreenState extends State<AuthScreen> {
                               ),
                             ),
                             items: const [
-                              DropdownMenuItem(value: 'parent', child: Text('Parent')),
-                              DropdownMenuItem(value: 'élève', child: Text('Élève')),
+                              DropdownMenuItem(
+                                value: 'parent',
+                                child: Text('Parent'),
+                              ),
+                              DropdownMenuItem(
+                                value: 'élève',
+                                child: Text('Élève'),
+                              ),
                             ],
                             onChanged: (v) => setState(() => _category = v),
                             validator: (v) => v == null ? 'Requis' : null,
@@ -377,7 +413,10 @@ class _AuthScreenState extends State<AuthScreen> {
                         ),
                         const SizedBox(height: 12),
                         if (_error != null) ...[
-                          Text(_error!, style: const TextStyle(color: Colors.red)),
+                          Text(
+                            _error!,
+                            style: const TextStyle(color: Colors.red),
+                          ),
                           const SizedBox(height: 8),
                         ],
                         SizedBox(
@@ -387,9 +426,19 @@ class _AuthScreenState extends State<AuthScreen> {
                                 ? null
                                 : () => _isSignUp ? _signUp() : _signIn(),
                             child: _loading
-                                ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                                : Text(_isSignUp ? 'Créer mon compte' : 'Se connecter',
-                                    style: const TextStyle(fontSize: 20)),
+                                ? const SizedBox(
+                                    height: 20,
+                                    width: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : Text(
+                                    _isSignUp
+                                        ? 'Créer mon compte'
+                                        : 'Se connecter',
+                                    style: const TextStyle(fontSize: 20),
+                                  ),
                           ),
                         ),
                         const SizedBox(height: 8),
@@ -410,12 +459,13 @@ class _AuthScreenState extends State<AuthScreen> {
                         ),
                       ],
                     ),
-                  )
-                )
-              )
-            )
-          )
-        ]
-      )
-    );}
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }

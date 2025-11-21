@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'feed_screen.dart';
 import 'announcements_screen.dart';
 import 'profile_screen.dart';

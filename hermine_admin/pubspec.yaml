@@ -33,6 +33,8 @@ dependencies:
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
+  fl_chart: ^0.66.0
+  intl: ^0.18.1
   cupertino_icons: ^1.0.8
   firebase_core: ^4.2.0
   firebase_auth: ^6.1.1
@@ -55,7 +57,7 @@ dev_dependencies:
 
 flutter_launcher_icons:
   android: true
-  ios: true
+  ios: false
   image_path: assets/icon.png
   # Pour Android adaptive (recommandé):
   adaptive_icon_background: "#FFFFFF"   # ou assets/icon_bg.png
@@ -80,7 +82,9 @@ flutter:
   uses-material-design: true
 
   # To add assets to your application, add an assets section, like this:
-
+  assets:
+    - assets/icon.png
+    - assets/icon_foreground.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
@@ -105,5 +109,7 @@ flutter:
   #       - asset: fonts/TrajanPro_Bold.ttf
   #         weight: 700
   #
+  # For details regarding fonts from package dependencies,
+  # see https://flutter.dev/to/font-from-package
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package

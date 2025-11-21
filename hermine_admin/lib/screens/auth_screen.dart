@@ -40,10 +40,6 @@ class _AuthScreenState extends State<AuthScreen> {
           Positioned.fill(
             child: Container(
               decoration: const BoxDecoration(
-                image: DecorationImage(
-                  image: AssetImage('assets/hero-classroom.jpg'),
-                  fit: BoxFit.cover,
-                ),
                 gradient: LinearGradient(
                   colors: [Color(0xFF1976D2), Color(0xFF64B5F6)],
                   begin: Alignment.topLeft,
@@ -76,7 +72,10 @@ class _AuthScreenState extends State<AuthScreen> {
           Center(
             child: SingleChildScrollView(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24.0,
+                  vertical: 16,
+                ),
                 child: Container(
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.85),
@@ -111,7 +110,8 @@ class _AuthScreenState extends State<AuthScreen> {
                             borderSide: BorderSide.none,
                           ),
                         ),
-                        validator: (v) => v == null || v.isEmpty ? 'Required' : null,
+                        validator: (v) =>
+                            v == null || v.isEmpty ? 'Required' : null,
                       ),
                       const SizedBox(height: 16),
                       TextFormField(
@@ -137,8 +137,9 @@ class _AuthScreenState extends State<AuthScreen> {
                           ),
                         ),
                         obscureText: true,
-                        validator: (v) =>
-                            v == null || v.length < 4 ? 'Min 4 caractères' : null,
+                        validator: (v) => v == null || v.length < 4
+                            ? 'Min 4 caractères'
+                            : null,
                       ),
                       const SizedBox(height: 16),
                       Row(
@@ -157,7 +158,7 @@ class _AuthScreenState extends State<AuthScreen> {
                           ),
                           const Spacer(),
                           TextButton(
-                            onPressed: (){
+                            onPressed: () {
                               //_onForgotPassword
                             },
                             child: const Text(
@@ -172,7 +173,10 @@ class _AuthScreenState extends State<AuthScreen> {
                       ),
                       const SizedBox(height: 20),
                       if (_error != null) ...[
-                        Text(_error!, style: const TextStyle(color: Colors.red)),
+                        Text(
+                          _error!,
+                          style: const TextStyle(color: Colors.red),
+                        ),
                         const SizedBox(height: 8),
                       ],
                       SizedBox(
@@ -180,21 +184,27 @@ class _AuthScreenState extends State<AuthScreen> {
                         child: ElevatedButton(
                           onPressed: _loading ? null : _signIn,
                           child: _loading
-                              ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                              : const Text('Se connecter', style: TextStyle(
-                                fontSize: 20,
-                              ),
-                          ),
-                        ) ,
+                              ? const SizedBox(
+                                  height: 20,
+                                  width: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : const Text(
+                                  'Se connecter',
+                                  style: TextStyle(fontSize: 20),
+                                ),
+                        ),
                       ),
                     ],
-                  )
-                )
-              )
-            )
-          )
-        ]
-      )
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
