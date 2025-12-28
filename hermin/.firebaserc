@@ -1,7 +1,8 @@
 {
   "projects": {
     "prod": "hermine-d1c9f",
-    "default": "hermine-d1c9f"
+    "default": "hermine-d1c9f",
+    "hermine": "hermine-d1c9f"
   },
   "targets": {},
   "etags": {}

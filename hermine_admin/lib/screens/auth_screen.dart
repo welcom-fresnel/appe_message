@@ -25,7 +25,29 @@ class _AuthScreenState extends State<AuthScreen> {
         password: _passwordController.text,
       );
     } on FirebaseAuthException catch (e) {
-      setState(() => _error = e.message);
+      String message;
+      switch (e.code) {
+        case 'user-not-found':
+          message = "Aucun compte trouvé pour cet email.";
+          break;
+        case 'wrong-password':
+          message = "Mot de passe incorrect.";
+          break;
+        case 'invalid-email':
+          message = "Adresse email invalide.";
+          break;
+        case 'network-request-failed':
+          message = "Erreur : connectez-vous à internet pour vous authentifier.";
+          break;
+        case 'too-many-requests':
+          message = "Trop de tentatives. Réessayez plus tard.";
+          break;
+        default:
+          message = e.message ?? "Erreur inconnue. Veuillez réessayer.";
+      }
+      setState(() => _error = message);
+    } catch (e) {
+      setState(() => _error = "Erreur inattendue. Vérifiez votre connexion internet.");
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -48,13 +70,13 @@ class _AuthScreenState extends State<AuthScreen> {
               ),
             ),
           ),
-          Align(
+          const Align(
             alignment: Alignment.topCenter,
             child: Padding(
-              padding: const EdgeInsets.only(top: 80.0),
+              padding: EdgeInsets.only(top: 80.0),
               child: Text(
                 "Connexion...",
-                style: const TextStyle(
+                style:  TextStyle(
                   fontSize: 32,
                   fontWeight: FontWeight.bold,
                   color: Color(0xFF1976D2),

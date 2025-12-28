@@ -14,7 +14,7 @@ const Footer = () => {
         <div className="grid md:grid-cols-4 gap-8 mb-8">
           <div>
             <h3 className="text-2xl font-display font-bold mb-4 bg-gradient-accent bg-clip-text text-transparent">
-              CommunityApps
+              Appex
             </h3>
             <p className="text-primary-foreground/80 leading-relaxed">
               Connectez, gérez et faites grandir votre communauté avec nos applications innovantes.
@@ -66,16 +66,19 @@ const Footer = () => {
                 <a
                   href="#"
                   className="text-primary-foreground/80 hover:text-accent transition-colors"
+                  target="_blank"
+                  rel="noopener noreferrer"
                 >
                   App Store (iOS)
                 </a>
               </li>
               <li>
                 <a
-                  href="#"
+                  href="/appex.apk"
                   className="text-primary-foreground/80 hover:text-accent transition-colors"
+                  download
                 >
-                  Google Play (Android)
+                  Télécharger Android (APK)
                 </a>
               </li>
               <li>
@@ -135,7 +138,7 @@ const Footer = () => {
         <div className="border-t border-primary-foreground/20 pt-8">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <p className="text-primary-foreground/60 text-sm">
-              © 2024 CommunityApps. Tous droits réservés.
+              © 2024 Appex. Tous droits réservés.
             </p>
             <div className="flex gap-6 text-sm">
               <a href="#" className="text-primary-foreground/60 hover:text-accent transition-colors">

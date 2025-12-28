@@ -19,7 +19,7 @@ const Navbar = () => {
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center">
             <h1 className="text-2xl font-display font-bold bg-gradient-hero bg-clip-text text-transparent">
-              CommunityApps
+              Appex
             </h1>
           </div>
 

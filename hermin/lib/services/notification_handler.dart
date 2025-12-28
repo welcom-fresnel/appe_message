@@ -4,6 +4,8 @@ import 'firebase_service.dart';
 
 /// Service pour gérer l'écoute et l'affichage des notifications à l'app startup
 class NotificationHandler {
+  /// Callback pour notifier l'UI d'une nouvelle notification
+  void Function()? onNotificationReceived;
   NotificationHandler._();
   static final NotificationHandler instance = NotificationHandler._();
 
@@ -43,6 +45,10 @@ class NotificationHandler {
         body: notification.body ?? '',
         payload: message.messageId ?? '',
       );
+      // Notifie l'UI
+      if (onNotificationReceived != null) {
+        onNotificationReceived!();
+      }
     }
   }
 

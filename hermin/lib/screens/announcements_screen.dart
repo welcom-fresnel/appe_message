@@ -195,9 +195,14 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
   Widget _buildAnnouncementCard(Map<String, dynamic> data, bool isNew) {
     final date = (data['createdAt'] as Timestamp).toDate();
     final formattedDate = DateFormat('dd MMM yyyy, HH:mm').format(date);
-    final type = data['type'] as String?;
-    final authorName = data['authorName'] as String? ?? 'Administration';
-    final authorPhotoUrl = data['authorPhotoUrl'] as String?;
+    final type = (data['type'] as String?) ?? 'text';
+    final authorName =
+        (data['authorName'] as String?) ??
+        (data['senderName'] as String?) ??
+        'Administration';
+    final authorPhotoUrl =
+        (data['authorPhotoUrl'] as String?) ??
+        (data['senderPhotoUrl'] as String?);
     final text = data['text'] as String? ?? '';
     final audioUrl = data['audioUrl'] as String?;
 
@@ -309,13 +314,33 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
                   maxLines: 3,
                   overflow: TextOverflow.ellipsis,
                 ),
-              ] else if (type == 'audio' && audioUrl != null) ...[
+              ] else if (type == 'audio' &&
+                  (audioUrl?.isNotEmpty ?? false)) ...[
                 const SizedBox(height: 12),
                 AudioAnnouncementTile(
-                  url: audioUrl,
+                  url: audioUrl!,
                   authorName: authorName,
                   authorPhotoUrl: authorPhotoUrl,
                   timestamp: date,
+                ),
+              ] else if (type == 'audio') ...[
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.red[50],
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.red[100]!),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.error_outline, color: Colors.red[700]),
+                      const SizedBox(width: 8),
+                      const Expanded(
+                        child: Text('Audio indisponible pour cette annonce'),
+                      ),
+                    ],
+                  ),
                 ),
               ],
               const SizedBox(height: 8),
@@ -486,7 +511,9 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
 
           // Subscribe once to FCM topic for background notifications (only valid topic names)
           final normalizedCategory = _normalizeCategory(category);
-          final candidateTopic = _sanitizeTopicName('category_${normalizedCategory}');
+          final candidateTopic = _sanitizeTopicName(
+            'category_${normalizedCategory}',
+          );
           if (candidateTopic != null && _subscribedTopic != candidateTopic) {
             _subscribedTopic = candidateTopic;
             FirebaseMessaging.instance.subscribeToTopic(candidateTopic);
@@ -550,16 +577,16 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
                             ),
                             const SizedBox(height: 16),
                             const Text(
-                              'Erreur de chargement des annonces',
+                              'Impossible de charger les annonces.',
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
                             const SizedBox(height: 8),
-                            Text(
-                              snapshot.error.toString(),
-                              style: const TextStyle(color: Colors.red),
+                            const Text(
+                              'Vérifiez votre connexion internet et réessayez.',
+                              style: TextStyle(color: Colors.red),
                               textAlign: TextAlign.center,
                             ),
                           ],
@@ -718,8 +745,14 @@ class _AudioAnnouncementTileState extends State<AudioAnnouncementTile> {
 
     try {
       final uri = Uri.tryParse(widget.url);
-      final isHttp = uri != null && (uri.scheme == 'https' || uri.scheme == 'http');
-      final supportedExt = uri != null && RegExp(r"\.(mp3|m4a|aac|wav|ogg)", caseSensitive: false).hasMatch(uri.path);
+      final isHttp =
+          uri != null && (uri.scheme == 'https' || uri.scheme == 'http');
+      final supportedExt =
+          uri != null &&
+          RegExp(
+            r"\.(mp3|m4a|aac|wav|ogg)",
+            caseSensitive: false,
+          ).hasMatch(uri.path);
       if (!isHttp || !supportedExt) {
         throw Exception('Format ou URL audio non pris en charge');
       }

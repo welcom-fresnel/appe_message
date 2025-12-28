@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter/services.dart';
+import 'chat_list_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -21,6 +22,38 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Map<String, dynamic>? _data;
   bool _loading = true;
   String? _error;
+
+  String _resolvedDisplayName() {
+    final dn = (_data?['displayName'] as String?)?.trim();
+    if (dn != null && dn.isNotEmpty) return dn;
+    final username = (_data?['username'] as String?)?.trim();
+    if (username != null && username.isNotEmpty) return username;
+    final first = (_data?['firstName'] as String?)?.trim() ?? '';
+    final last = (_data?['lastName'] as String?)?.trim() ?? '';
+    final full = [first, last].where((e) => e.isNotEmpty).join(' ').trim();
+    if (full.isNotEmpty) return full;
+    final email = (_data?['email'] as String?) ?? '';
+    if (email.isNotEmpty && email.contains('@')) {
+      return email.split('@').first;
+    }
+    return 'Votre nom';
+  }
+
+  String _resolvedPhotoUrl() {
+    final photoUrl = (_data?['photoUrl'] as String?)?.trim();
+    final authorPhotoUrl = (_data?['authorPhotoUrl'] as String?)?.trim();
+    return (photoUrl?.isNotEmpty ?? false)
+        ? photoUrl!
+        : (authorPhotoUrl ?? '');
+  }
+
+  String _resolvedRole() {
+    final role = (_data?['role'] as String?)?.trim();
+    if (role != null && role.isNotEmpty) return role;
+    final category = (_data?['category'] as String?)?.trim();
+    if (category != null && category.isNotEmpty) return category;
+    return 'Votre poste';
+  }
 
   @override
   void initState() {
@@ -72,6 +105,41 @@ class _ProfileScreenState extends State<ProfileScreen> {
             content: const Text('Échec de la mise à jour'),
             behavior: SnackBarBehavior.floating,
             backgroundColor: Colors.red[700],
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _sendPasswordResetEmail() async {
+    final email = FirebaseAuth.instance.currentUser?.email;
+    if (email == null || email.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Email introuvable. Définissez-le dans le profil.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return;
+    }
+    try {
+      await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Email de réinitialisation envoyé à $email'),
+            backgroundColor: _primaryColor,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Échec de l\'envoi: $e'),
+            backgroundColor: Colors.red,
           ),
         );
       }
@@ -260,9 +328,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildHeader() {
-    final displayName = (_data?['displayName'] as String?)?.trim();
-    final role = (_data?['role'] as String?)?.trim();
-    final photoUrl = (_data?['authorPhotoUrl'] as String?)?.trim();
+    final displayName = _resolvedDisplayName();
+    final role = _resolvedRole();
+    final photoUrl = _resolvedPhotoUrl();
     final verifiedEmail = (_data?['verified']?['email'] as bool?) ?? false;
 
     return Container(
@@ -322,9 +390,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   children: [
                     Expanded(
                       child: Text(
-                        displayName?.isNotEmpty == true
-                            ? displayName!
-                            : 'Votre nom',
+                        displayName,
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 20,
@@ -362,7 +428,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  role?.isNotEmpty == true ? role! : 'Votre poste',
+                  role,
                   style: TextStyle(
                     color: Colors.white.withOpacity(0.95),
                     fontSize: 14,
@@ -721,6 +787,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
           onChanged: (v) => _save({
             'security': {'twoFAEnabled': v},
           }),
+        ),
+        ListTile(
+          contentPadding: EdgeInsets.zero,
+          leading: Icon(Icons.lock_reset, color: _primaryColor),
+          title: const Text('Changer le mot de passe'),
+          subtitle: const Text(
+            'Envoie un email de réinitialisation au compte connecté',
+          ),
+          onTap: _sendPasswordResetEmail,
+          trailing: Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey[600]),
         ),
         const SizedBox(height: 8),
         Text(
@@ -1128,9 +1204,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     title: const Text('Profil'),
                     actions: [
                       IconButton(
-                        onPressed: _load,
-                        icon: const Icon(Icons.refresh),
+                            onPressed: _load,
+                            icon: const Icon(Icons.refresh),
                       ),
+                          IconButton(
+                            onPressed: () {
+                              Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ChatListScreen()));
+                            },
+                            icon: const Icon(Icons.chat_bubble_outline),
+                            tooltip: 'Messages',
+                          ),
                     ],
                   ),
                   SliverToBoxAdapter(child: _buildHeader()),

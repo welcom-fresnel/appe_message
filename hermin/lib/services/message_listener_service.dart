@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../notification_service.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 
 /// Service pour écouter les nouveaux messages et afficher les notifications
 class MessageListenerService {
@@ -25,6 +26,13 @@ class MessageListenerService {
       if (_userCategory.isEmpty) return;
 
       print('👂 Écoute des messages pour la catégorie: $_userCategory');
+
+      try {
+        // Subscribe to per-user topic to receive conversation notifications
+        await FirebaseMessaging.instance.subscribeToTopic('user_${currentUser.uid}');
+      } catch (e) {
+        print('⚠️ Erreur subscription topic: $e');
+      }
 
       // Écouter les nouveaux messages
       FirebaseFirestore.instance

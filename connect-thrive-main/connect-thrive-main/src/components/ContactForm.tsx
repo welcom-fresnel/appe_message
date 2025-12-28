@@ -166,8 +166,8 @@ const ContactForm = () => {
                   </div>
                   <div>
                     <h3 className="font-semibold text-foreground mb-1">Email</h3>
-                    <p className="text-muted-foreground">contact@communityapps.fr</p>
-                    <p className="text-muted-foreground">support@communityapps.fr</p>
+                    <p className="text-muted-foreground">scholarship642@gmail.com</p>
+                    <p className="text-muted-foreground">scholarship642@gmail.com</p>
                   </div>
                 </div>
               </CardContent>
@@ -181,7 +181,7 @@ const ContactForm = () => {
                   </div>
                   <div>
                     <h3 className="font-semibold text-foreground mb-1">Téléphone</h3>
-                    <p className="text-muted-foreground">+33 1 23 45 67 89</p>
+                    <p className="text-muted-foreground">+242 067113372</p>
                     <p className="text-sm text-muted-foreground mt-1">Lun - Ven, 9h - 18h</p>
                   </div>
                 </div>
@@ -196,8 +196,8 @@ const ContactForm = () => {
                   </div>
                   <div>
                     <h3 className="font-semibold text-foreground mb-1">Adresse</h3>
-                    <p className="text-muted-foreground">123 Avenue des Champs-Élysées</p>
-                    <p className="text-muted-foreground">75008 Paris, France</p>
+                    <p className="text-muted-foreground">03 rue okia manianga arrêt église</p>
+                    <p className="text-muted-foreground">Brazzaville, Talangaï</p>
                   </div>
                 </div>
               </CardContent>

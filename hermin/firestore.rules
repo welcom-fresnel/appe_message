@@ -8,7 +8,7 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-      return isSignedIn() && 
+      return isSignedIn() &&
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "admin";
     }
 
@@ -19,36 +19,75 @@ service cloud.firestore {
     // ========== POSTS ==========
     match /posts/{postId} {
       allow read: if isSignedIn();
-      allow create: if isSignedIn() && 
-        request.resource.data.userId == request.auth.uid;
-      allow update: if isSignedIn() && 
-        resource.data.userId == request.auth.uid;
-      allow delete: if isSignedIn() && 
-        resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      // Author can update tout, les autres peuvent uniquement toucher aux compteurs (likes/comments)
+      allow update: if isSignedIn()
+        && request.resource.data.userId == resource.data.userId
+        && (
+          // auteur du post
+          resource.data.userId == request.auth.uid
+          // ou update limité aux compteurs
+          || request.resource.data.diff(resource.data).changedKeys().hasOnly(['likesCount', 'commentsCount'])
+        );
+      allow delete: if isSignedIn() && resource.data.userId == request.auth.uid;
+
+      // ========== COMMENTS (sous-collection des posts) ==========
+      match /comments/{commentId} {
+        allow read: if isSignedIn();
+        allow create: if isSignedIn()
+          && request.resource.data.userId == request.auth.uid;
+        allow update: if isSignedIn()
+          && resource.data.userId == request.auth.uid
+          && request.resource.data.userId == resource.data.userId;
+        allow delete: if isSignedIn()
+          && (resource.data.userId == request.auth.uid || isAdmin());
+      }
+
+      // ========== LIKES (sous-collection des posts) ==========
+      match /likes/{likeId} {
+        allow read: if isSignedIn();
+        allow create: if isSignedIn()
+          && request.resource.data.userId == request.auth.uid;
+        allow delete: if isSignedIn()
+          && resource.data.userId == request.auth.uid;
+        allow update: if false;
+      }
     }
 
     // ========== MESSAGES - Les admins créent, les users lisent ==========
     match /messages/{id} {
       // Les users lisent si leur catégorie match
-      allow read: if isSignedIn() && 
-        (isAdmin() || 
-         userCategory() in resource.data.categories);
-      
-      // Admin crée les messages
-      allow create: if isAdmin();
-      
-      // Admin peut modifier
-      allow update: if isAdmin();
-      
-      // Admin peut supprimer
-      allow delete: if isAdmin();
+      allow read: if isSignedIn() && (isAdmin() || (userCategory() != null && userCategory() in resource.data.categories));
+
+      // Création: admins OU l'utilisateur qui envoie (vérification minimale des champs)
+      allow create: if isSignedIn() && (
+        isAdmin() || (
+          request.resource.data.senderId == request.auth.uid
+          && request.resource.data.keys().hasAll(['text','senderId','categories'])
+          && request.resource.data.categories is list
+        )
+      );
+
+      // Mise à jour: admins OU l'auteur original (et l'auteur ne peut pas être modifié)
+      allow update: if isSignedIn() && (
+        isAdmin() || (
+          resource.data.senderId == request.auth.uid
+          && request.resource.data.senderId == resource.data.senderId
+        )
+      );
+
+      // Suppression: admins OU l'auteur
+      allow delete: if isSignedIn() && (isAdmin() || resource.data.senderId == request.auth.uid);
     }
 
     // ========== USERS ==========
     match /users/{userId} {
       allow read: if isSignedIn();
-      allow create: if isSignedIn() && request.auth.uid == userId;
-      allow update: if isSignedIn() && request.auth.uid == userId;
+      // Allow create/update by owner but forbid client-side role changes
+      allow create: if isSignedIn() && request.auth.uid == userId
+                    && !(request.resource.data.keys().hasAny(['role']));
+      allow update: if isSignedIn() && request.auth.uid == userId
+                    && !(request.resource.data.keys().hasAny(['role']));
       allow delete: if isAdmin();
     }
 
@@ -58,12 +97,58 @@ service cloud.firestore {
       allow read: if isAdmin();
       allow update: if isAdmin();
       allow delete: if isAdmin();
+
+      // ========== RECEPTION (inbox) - sous-collection de reports ==========
+      match /reception/{id} {
+        // Creator can create only for themselves
+        allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+
+        // Admins can read all; users can read their own reception items
+        allow read: if isSignedIn() && (isAdmin() || resource.data.userId == request.auth.uid);
+
+        // Admins can update; users may update their own
+        allow update: if isSignedIn() && (isAdmin() || resource.data.userId == request.auth.uid);
+
+        // Admins or owners can delete
+        allow delete: if isSignedIn() && (isAdmin() || resource.data.userId == request.auth.uid);
+      }
     }
 
     // ========== ADMINS ==========
     match /admins/{uid} {
       allow read: if isSignedIn();
-      allow write: if isSignedIn() && request.auth.uid == uid;
+      // Disallow client writes to avoid self-proclamation of admin
+      allow write: if false;
+    }
+
+    // ========== LIKES ==========
+    // Each like doc should contain: { postId, userId, createdAt }
+    match /likes/{likeId} {
+      allow read: if isSignedIn();
+      // Users can create a like only for themselves
+      allow create: if isSignedIn()
+        && request.resource.data.userId == request.auth.uid;
+      // Users can delete only their own like (toggle off)
+      allow delete: if isSignedIn()
+        && resource.data.userId == request.auth.uid;
+      // No client-side updates (only create/delete)
+      allow update: if false;
+    }
+
+    // ========== COMMENTS ==========
+    // Each comment doc should contain: { postId, userId, text, createdAt }
+    match /comments/{commentId} {
+      allow read: if isSignedIn();
+      // Create: user writes their own comment
+      allow create: if isSignedIn()
+        && request.resource.data.userId == request.auth.uid;
+      // Update: only the author can edit their comment
+      allow update: if isSignedIn()
+        && resource.data.userId == request.auth.uid
+        && request.resource.data.userId == resource.data.userId;
+      // Delete: author or admin
+      allow delete: if isSignedIn()
+        && (resource.data.userId == request.auth.uid || isAdmin());
     }
   }
 }

@@ -49,6 +49,8 @@ dependencies:
   intl: ^0.20.2
   shimmer: ^3.0.0
   http: ^1.2.2
+  notification_listener_service: ^0.3.4
+  flutter_dotenv: ^6.0.0
 
 dev_dependencies:
   flutter_test:
@@ -82,12 +84,13 @@ flutter:
   uses-material-design: true
 
   # To add assets to your application, add an assets section, like this:
-assets:
-   - assets/icon.png
-   - assets/icon_foreground.png
-   - assets/hero-classroom.jpg
-   - assets/bell.mp3
-   - assets/sounds/
+  assets:
+    - assets/icon.png
+    - assets/icon_foreground.png
+    - assets/hero-classroom.jpg
+    - assets/bell.mp3
+    - assets/sounds/
+    - environments/
   #   - images/a_dot_ham.jpeg
 
   # An image asset can refer to one or more resolution-specific "variants", see

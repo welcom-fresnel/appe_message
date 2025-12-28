@@ -14,7 +14,10 @@ import '../services/sms_service.dart';
 import '../config.dart';
 
 class ComposeMessageScreen extends StatefulWidget {
-  const ComposeMessageScreen({super.key});
+  // initialRecipient: {id, name, phone}
+  final Map<String, dynamic>? initialRecipient;
+
+  const ComposeMessageScreen({super.key, this.initialRecipient});
 
   @override
   State<ComposeMessageScreen> createState() => _ComposeMessageScreenState();
@@ -24,6 +27,7 @@ class _ComposeMessageScreenState extends State<ComposeMessageScreen> {
   final List<String> _allCategories = const ['parent', 'eleve', 'enseignant'];
   final Set<String> _selected = {'parent'};
   final TextEditingController _textCtrl = TextEditingController();
+  final TextEditingController _classCtrl = TextEditingController();
   bool _sending = false;
   bool _sendAlsoSms = false;
   bool _individualMode = false;
@@ -45,12 +49,18 @@ class _ComposeMessageScreenState extends State<ComposeMessageScreen> {
   void initState() {
     super.initState();
     _ensureSmsPermissions();
+    // If opened with an initial recipient, set individual mode
+    if (widget.initialRecipient != null) {
+      _individualMode = true;
+      _singleRecipient = widget.initialRecipient;
+    }
   }
 
   @override
   void dispose() {
     _recordTimer?.cancel();
     _textCtrl.dispose();
+    _classCtrl.dispose();
     _recorder.dispose();
     super.dispose();
   }
@@ -60,8 +70,12 @@ class _ComposeMessageScreenState extends State<ComposeMessageScreen> {
     final phoneStatus = await Permission.phone.status;
     if (smsStatus.isGranted && phoneStatus.isGranted) return true;
     final results = await [Permission.sms, Permission.phone].request();
-    return (results[Permission.sms]?.isGranted ?? false) &&
+    final granted = (results[Permission.sms]?.isGranted ?? false) &&
         (results[Permission.phone]?.isGranted ?? false);
+    if (!granted) {
+      _showSnackBar("Erreur : autorisez l'accès SMS et téléphone pour envoyer des messages par SMS.");
+    }
+    return granted;
   }
 
   Future<void> _sendTextMessage() async {
@@ -113,18 +127,79 @@ class _ComposeMessageScreenState extends State<ComposeMessageScreen> {
         data['recipientUserIds'] = [_singleRecipient!['id']];
       } else {
         data['categories'] = _selected.toList();
+
+        // Ciblage optionnel des parents d'une classe donnée
+        final targetClass = _classCtrl.text.trim();
+        final bool targetParentsByClass =
+            targetClass.isNotEmpty && _selected.contains('parent');
+
+        if (targetParentsByClass) {
+          final qs = await FirebaseFirestore.instance
+              .collection('users')
+              .where('category', isEqualTo: 'parent')
+              .where('studentClass', isEqualTo: targetClass)
+              .get();
+
+          final ids = qs.docs.map((d) => d.id).toList();
+          if (ids.isNotEmpty) {
+            data['recipientUserIds'] = ids;
+            data['targetClass'] = targetClass;
+          }
+        }
       }
 
-      await FirebaseFirestore.instance.collection('messages').add(data);
+      final msgRef = await FirebaseFirestore.instance.collection('messages').add(data);
+      // Historique d'envoi pour l'admin
+      await FirebaseFirestore.instance.collection('sent_messages_history').add({
+        'adminId': FirebaseAuth.instance.currentUser?.uid,
+        'messageId': msgRef.id,
+        'type': 'text',
+        'text': _textCtrl.text.trim(),
+        'categories': _individualMode ? null : _selected.toList(),
+        'recipientUserIds': data['recipientUserIds'],
+        'targetClass': data['targetClass'],
+        'createdAt': FieldValue.serverTimestamp(),
+      });
 
       if (_sendAlsoSms) {
         await _sendSmsBatch(_textCtrl.text.trim());
       }
 
       _textCtrl.clear();
+      _classCtrl.clear();
       _showSnackBar('Message envoyé avec succès', isError: false);
+
+      // If we were opened from a reception doc (reply flow), try to mark it handled.
+      try {
+        final recId = _singleRecipient != null ? _singleRecipient!['id'] as String? : null;
+        if (recId != null) {
+          await FirebaseFirestore.instance.collection('reception').doc(recId).update({
+            'handled': true,
+            'handledBy': FirebaseAuth.instance.currentUser?.uid,
+            'handledAt': FieldValue.serverTimestamp(),
+          });
+        }
+      } catch (e) {
+        // ignore errors - it's optional and not critical if the id is not a reception doc
+      }
+    } on FirebaseException catch (e) {
+      String message;
+      switch (e.code) {
+        case 'unavailable':
+        case 'network-error':
+          message = "Erreur : connectez-vous à internet pour envoyer un message.";
+          break;
+        case 'permission-denied':
+          message = "Vous n'avez pas la permission d'envoyer ce message.";
+          break;
+        default:
+          message = e.message ?? "Erreur inconnue lors de l'envoi du message.";
+      }
+      _showSnackBar(message);
+    } on SocketException {
+      _showSnackBar("Erreur : connectez-vous à internet pour envoyer un message.");
     } catch (e) {
-      _showSnackBar('Erreur: $e');
+      _showSnackBar('Erreur inattendue : $e');
     } finally {
       if (mounted) setState(() => _sending = false);
     }
@@ -210,7 +285,8 @@ class _ComposeMessageScreenState extends State<ComposeMessageScreen> {
     _audioError = null;
     final hasPerm = await _recorder.hasPermission();
     if (!hasPerm) {
-      setState(() => _audioError = 'Permission micro refusée');
+      setState(() => _audioError = 'Erreur : autorisez l\'accès au micro pour enregistrer un message vocal.');
+      _showSnackBar("Erreur : autorisez l'accès au micro pour enregistrer un message vocal.");
       return;
     }
 
@@ -272,9 +348,32 @@ class _ComposeMessageScreenState extends State<ComposeMessageScreen> {
             'durationSec': secs,
             'createdAt': FieldValue.serverTimestamp(),
           });
+      // Historique d'envoi pour l'admin (audio)
+      await FirebaseFirestore.instance.collection('sent_messages_history').add({
+        'adminId': FirebaseAuth.instance.currentUser?.uid,
+        'messageId': msgRef.id,
+        'type': 'audio',
+        'categories': _selected.toList(),
+        'durationSec': secs,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
 
       final url = await _uploadToCloudinary(file);
       await msgRef.update({'audioUrl': url});
+
+      // If replying to a reception doc, mark it handled
+      try {
+        final recId = _singleRecipient != null ? _singleRecipient!['id'] as String? : null;
+        if (recId != null) {
+          await FirebaseFirestore.instance.collection('reception').doc(recId).update({
+            'handled': true,
+            'handledBy': FirebaseAuth.instance.currentUser?.uid,
+            'handledAt': FieldValue.serverTimestamp(),
+          });
+        }
+      } catch (e) {
+        // ignore
+      }
 
       _showSnackBar('Vocal envoyé avec succès', isError: false);
     } catch (e) {
@@ -322,7 +421,7 @@ class _ComposeMessageScreenState extends State<ComposeMessageScreen> {
                   return;
                 } catch (e) {
                   // Si l'index n'existe pas, faire une recherche simple
-                  print('Recherche avec keywords échouée, utilisation de la recherche textuelle');
+                  debugPrint('Recherche avec keywords échouée, utilisation de la recherche textuelle');
                 }
                 
                 // Fallback: récupérer tous les utilisateurs et filtrer localement
@@ -352,7 +451,7 @@ class _ComposeMessageScreenState extends State<ComposeMessageScreen> {
                   filteredDocs = filtered;
                 });
               } catch (e) {
-                print('Erreur de recherche: $e');
+                debugPrint('Erreur de recherche: $e');
                 setStateBS(() {
                   result = null;
                   filteredDocs = [];
@@ -607,6 +706,15 @@ class _ComposeMessageScreenState extends State<ComposeMessageScreen> {
                         );
                       }).toList(),
                     ),
+                    const SizedBox(height: 12),
+                    if (!_individualMode && _selected.contains('parent'))
+                      TextField(
+                        controller: _classCtrl,
+                        decoration: const InputDecoration(
+                          labelText: 'Classe (parents uniquement)',
+                          hintText: 'Ex: 3e A',
+                        ),
+                      ),
                   ],
                 ),
               ),

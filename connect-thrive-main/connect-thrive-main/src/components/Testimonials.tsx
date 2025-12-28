@@ -6,7 +6,7 @@ const Testimonials = () => {
     {
       name: "Sophie Martin",
       role: "Présidente d'association",
-      content: "Grâce à CommunityApps, nous avons multiplié par 3 l'engagement de nos membres. Les notifications en temps réel changent vraiment la donne !",
+      content: "Grâce à Appex, nous avons multiplié par 3 l'engagement de nos membres. Les notifications en temps réel changent vraiment la donne !",
       rating: 5,
       avatar: "👩‍💼",
     },

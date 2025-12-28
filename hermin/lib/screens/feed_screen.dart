@@ -5,6 +5,8 @@ import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import 'package:just_audio/just_audio.dart';
 import '../services/index.dart';
+import 'package:notification_listener_service/notification_listener_service.dart';
+import '../services/notification_handler.dart';
 
 class FeedScreen extends StatefulWidget {
   const FeedScreen({super.key});
@@ -18,6 +20,26 @@ class _FeedScreenState extends State<FeedScreen> {
   final TextEditingController _postController = TextEditingController();
   bool _isPosting = false;
   String _query = '';
+  int _unreadNotifications = 0;
+  @override
+  void initState() {
+    super.initState();
+    // Synchronise le badge avec les notifications FCM réelles
+    NotificationHandler.instance.onNotificationReceived =
+        _onNotificationReceived;
+  }
+
+  @override
+  void dispose() {
+    NotificationHandler.instance.onNotificationReceived = null;
+    super.dispose();
+  }
+
+  void _onNotificationReceived() {
+    setState(() {
+      _unreadNotifications++;
+    });
+  }
 
   Future<void> _pickImages() async {
     final picker = ImagePicker();
@@ -32,16 +54,20 @@ class _FeedScreenState extends State<FeedScreen> {
   Future<void> _addPost() async {
     if (_postController.text.isEmpty && _selectedImages.isEmpty) return;
     setState(() => _isPosting = true);
-    
+
     try {
       // Upload les images vers Cloudinary
       final uploadedUrls = await CloudinaryService.instance
           .uploadMultipleImages(_selectedImages);
-      
+
       if (uploadedUrls.isEmpty && _postController.text.isEmpty) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Erreur: Impossible d\'uploader les images')),
+            const SnackBar(
+              content: Text(
+                'Impossible d\'envoyer les images. Vérifie ta connexion et réessaie.',
+              ),
+            ),
           );
         }
         setState(() => _isPosting = false);
@@ -49,7 +75,7 @@ class _FeedScreenState extends State<FeedScreen> {
       }
 
       final user = FirebaseAuth.instance.currentUser;
-      
+
       // Créer les URLs optimisées
       final mediaUrls = uploadedUrls
           .map((r) => r.getOptimizedUrl(width: 800))
@@ -78,15 +104,19 @@ class _FeedScreenState extends State<FeedScreen> {
 
       if (mounted) {
         Navigator.of(context).pop();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('✅ Publication réussie!')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('✅ Publication réussie!')));
       }
     } catch (e) {
       print('❌ Erreur lors de la publication: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erreur: $e')),
+          const SnackBar(
+            content: Text(
+              'Impossible de publier. Vérifie ta connexion et réessaie.',
+            ),
+          ),
         );
       }
       setState(() => _isPosting = false);
@@ -164,21 +194,52 @@ class _FeedScreenState extends State<FeedScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Hermine'),
+        title: const Text('LEAURRY-FLORIDE'),
         elevation: 20,
         actions: [
           IconButton(
             onPressed: () => FirebaseAuth.instance.signOut(),
             icon: const Icon(Icons.logout),
           ),
-          IconButton(
-            onPressed: () {
-              //implementation de la notification
-            },
-            icon: const Icon(
-              Icons.notification_add_outlined,
-              color: Colors.blueAccent,
-            ),
+          Stack(
+            children: [
+              IconButton(
+                onPressed: () {
+                  setState(() {
+                    _unreadNotifications = 0;
+                  });
+                },
+                icon: const Icon(
+                  Icons.notification_add_outlined,
+                  color: Colors.blueAccent,
+                ),
+              ),
+              if (_unreadNotifications > 0)
+                Positioned(
+                  right: 8,
+                  top: 8,
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: Colors.red,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    constraints: const BoxConstraints(
+                      minWidth: 20,
+                      minHeight: 20,
+                    ),
+                    child: Text(
+                      '$_unreadNotifications',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ),
+            ],
           ),
         ],
       ),
@@ -351,38 +412,78 @@ class _FeedScreenState extends State<FeedScreen> {
                                                 .instance
                                                 .collection('posts')
                                                 .doc(postId);
-                                            if (isLiked) {
-                                              await postRef.update({
-                                                'likes': FieldValue.arrayRemove([
-                                                  currentUser.uid,
-                                                ]),
-                                              });
-                                            } else {
-                                              await postRef.update({
-                                                'likes': FieldValue.arrayUnion([
-                                                  currentUser.uid,
-                                                ]),
-                                              });
+                                            final likeRef = postRef
+                                                .collection('likes')
+                                                .doc(currentUser.uid);
+
+                                            try {
+                                              if (isLiked) {
+                                                // Supprimer le like
+                                                await likeRef.delete();
+                                                // Décrémenter le compteur de likes
+                                                await postRef.update({
+                                                  'likesCount':
+                                                      FieldValue.increment(-1),
+                                                });
+                                              } else {
+                                                // Ajouter un like
+                                                await likeRef.set({
+                                                  'userId': currentUser.uid,
+                                                  'createdAt':
+                                                      FieldValue.serverTimestamp(),
+                                                  'username':
+                                                      currentUser.displayName ??
+                                                      'Utilisateur anonyme',
+                                                  'userPhoto':
+                                                      currentUser.photoURL,
+                                                });
+                                                // Incrémenter le compteur de likes
+                                                await postRef.update({
+                                                  'likesCount':
+                                                      FieldValue.increment(1),
+                                                });
+                                              }
+                                            } catch (e) {
+                                              print('Erreur lors du like: $e');
+                                              if (mounted) {
+                                                ScaffoldMessenger.of(
+                                                  context,
+                                                ).showSnackBar(
+                                                  SnackBar(
+                                                    content: Text(
+                                                      'Impossible de mettre à jour le like. Vérifie ta connexion et réessaie.',
+                                                    ),
+                                                  ),
+                                                );
+                                              }
                                             }
                                           },
                                     child: Padding(
-                                      padding: const EdgeInsets.symmetric(vertical: 8),
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 8,
+                                      ),
                                       child: Row(
-                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
                                         children: [
                                           Icon(
                                             isLiked
                                                 ? Icons.favorite
                                                 : Icons.favorite_border,
-                                            color: isLiked ? Colors.red : Colors.grey,
+                                            color: isLiked
+                                                ? Colors.red
+                                                : Colors.grey,
                                             size: 20,
                                           ),
                                           const SizedBox(width: 4),
                                           Text(
-                                            likes.length > 0 ? '${likes.length}' : 'J\'aime',
+                                            '${data['likesCount'] ?? 0} J\'aime',
                                             style: TextStyle(
-                                              color: isLiked ? Colors.red : Colors.grey[700],
+                                              color: isLiked
+                                                  ? Colors.red
+                                                  : Colors.grey[700],
                                               fontWeight: FontWeight.w500,
+                                              fontSize: 14,
                                             ),
                                           ),
                                         ],
@@ -395,11 +496,18 @@ class _FeedScreenState extends State<FeedScreen> {
                                   child: InkWell(
                                     onTap: currentUser == null
                                         ? null
-                                        : () => _showCommentsSheet(context, postId, currentUser),
+                                        : () => _showCommentsSheet(
+                                            context,
+                                            postId,
+                                            currentUser,
+                                          ),
                                     child: Padding(
-                                      padding: const EdgeInsets.symmetric(vertical: 8),
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 8,
+                                      ),
                                       child: Row(
-                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
                                         children: [
                                           const Icon(
                                             Icons.comment_outlined,
@@ -408,10 +516,11 @@ class _FeedScreenState extends State<FeedScreen> {
                                           ),
                                           const SizedBox(width: 4),
                                           Text(
-                                            commentsCount > 0 ? '$commentsCount' : 'Commenter',
+                                            'Voir les ${commentsCount} commentaires',
                                             style: TextStyle(
                                               color: Colors.grey[700],
                                               fontWeight: FontWeight.w500,
+                                              fontSize: 14,
                                             ),
                                           ),
                                         ],
@@ -424,11 +533,17 @@ class _FeedScreenState extends State<FeedScreen> {
                                   child: InkWell(
                                     onTap: currentUser == null
                                         ? null
-                                        : () => _showReportDialog(context, postId),
+                                        : () => _showReportDialog(
+                                            context,
+                                            postId,
+                                          ),
                                     child: Padding(
-                                      padding: const EdgeInsets.symmetric(vertical: 8),
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 8,
+                                      ),
                                       child: Row(
-                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
                                         children: [
                                           const Icon(
                                             Icons.flag_outlined,
@@ -456,7 +571,11 @@ class _FeedScreenState extends State<FeedScreen> {
                               GestureDetector(
                                 onTap: currentUser == null
                                     ? null
-                                    : () => _showCommentsSheet(context, postId, currentUser),
+                                    : () => _showCommentsSheet(
+                                        context,
+                                        postId,
+                                        currentUser,
+                                      ),
                                 child: Text(
                                   'Voir les $commentsCount commentaires',
                                   style: TextStyle(
@@ -476,9 +595,13 @@ class _FeedScreenState extends State<FeedScreen> {
                                       .doc(commentUserId)
                                       .get(),
                                   builder: (context, userSnapshot) {
-                                    final userName = userSnapshot.data?['displayName'] ?? commentUserId;
+                                    final userName =
+                                        userSnapshot.data?['displayName'] ??
+                                        commentUserId;
                                     return Padding(
-                                      padding: const EdgeInsets.symmetric(vertical: 4),
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 4,
+                                      ),
                                       child: RichText(
                                         text: TextSpan(
                                           children: [
@@ -524,299 +647,357 @@ class _FeedScreenState extends State<FeedScreen> {
   }
 
   // Affiche tous les commentaires style Facebook
-  void _showCommentsSheet(
-    BuildContext context,
-    String postId,
-    User currentUser,
-  ) {
-    final TextEditingController commentController = TextEditingController();
+  Future<void> _addComment(String postId, String text, User user) async {
+    if (text.trim().isEmpty) return;
 
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      builder: (context) => DraggableScrollableSheet(
-        expand: false,
-        builder: (context, scrollController) => Column(
-          children: [
-            // Header
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                children: [
-                  const Text(
-                    'Commentaires',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const Spacer(),
-                  IconButton(
-                    icon: const Icon(Icons.close),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                ],
-              ),
-            ),
-            const Divider(),
-            // Comments List
-            Expanded(
-              child: StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
-                stream: FirebaseFirestore.instance
-                    .collection('posts')
-                    .doc(postId)
-                    .snapshots(),
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
+    final commentData = {
+      'userId': user.uid,
+      'username': user.displayName ?? 'Anonyme',
+      'userPhoto': user.photoURL,
+      'text': text.trim(),
+      'createdAt': FieldValue.serverTimestamp(),
+    };
 
-                  final comments = List<Map<String, dynamic>>.from(
-                    snapshot.data?['comments'] ?? [],
-                  );
-
-                  if (comments.isEmpty) {
-                    return Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.comment_outlined,
-                            size: 48,
-                            color: Colors.grey[400],
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Aucun commentaire pour le moment',
-                            style: TextStyle(color: Colors.grey[600]),
-                          ),
-                        ],
-                      ),
-                    );
-                  }
-
-                  return ListView.builder(
-                    controller: scrollController,
-                    itemCount: comments.length,
-                    itemBuilder: (context, index) {
-                      final comment = comments[index];
-                      final userId = comment['userId'] ?? '';
-                      final text = comment['text'] ?? '';
-                      final createdAt = comment['createdAt'];
-                      final timestamp = createdAt is Timestamp
-                          ? createdAt.toDate()
-                          : DateTime.now();
-
-                      return FutureBuilder<DocumentSnapshot>(
-                        future: FirebaseFirestore.instance
-                            .collection('users')
-                            .doc(userId)
-                            .get(),
-                        builder: (context, userSnapshot) {
-                          final userName =
-                              userSnapshot.data?['displayName'] ?? 'Utilisateur';
-                          final userPhoto = userSnapshot.data?['photoUrl'] ?? '';
-
-                          return Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 12,
-                            ),
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                // Avatar
-                                CircleAvatar(
-                                  radius: 18,
-                                  backgroundImage: userPhoto.isNotEmpty
-                                      ? NetworkImage(userPhoto)
-                                      : null,
-                                  child: userPhoto.isEmpty
-                                      ? const Icon(Icons.person)
-                                      : null,
-                                ),
-                                const SizedBox(width: 12),
-                                // Comment content
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      // Name and time
-                                      Row(
-                                        children: [
-                                          Text(
-                                            userName,
-                                            style: const TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 13,
-                                            ),
-                                          ),
-                                          const SizedBox(width: 8),
-                                          Text(
-                                            _getTimeAgo(timestamp),
-                                            style: TextStyle(
-                                              color: Colors.grey[600],
-                                              fontSize: 11,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                      const SizedBox(height: 4),
-                                      // Comment text
-                                      Container(
-                                        padding: const EdgeInsets.all(10),
-                                        decoration: BoxDecoration(
-                                          color: Colors.grey[100],
-                                          borderRadius:
-                                              BorderRadius.circular(12),
-                                        ),
-                                        child: Text(
-                                          text,
-                                          style: const TextStyle(fontSize: 13),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                // Delete button for own comments
-                                if (userId == currentUser.uid)
-                                  PopupMenuButton(
-                                    itemBuilder: (context) => [
-                                      PopupMenuItem(
-                                        child: const Text('Supprimer'),
-                                        onTap: () async {
-                                          await _deleteComment(
-                                            postId,
-                                            index,
-                                          );
-                                        },
-                                      ),
-                                    ],
-                                  ),
-                              ],
-                            ),
-                          );
-                        },
-                      );
-                    },
-                  );
-                },
-              ),
-            ),
-            // Input area
-            Container(
-              decoration: BoxDecoration(
-                border: Border(
-                  top: BorderSide(color: Colors.grey[300]!),
-                ),
-              ),
-              padding: EdgeInsets.only(
-                left: 16,
-                right: 16,
-                top: 12,
-                bottom: MediaQuery.of(context).viewInsets.bottom + 12,
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: commentController,
-                      decoration: InputDecoration(
-                        hintText: 'Ajouter un commentaire...',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(24),
-                          borderSide: BorderSide.none,
-                        ),
-                        filled: true,
-                        fillColor: Colors.grey[100],
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 10,
-                        ),
-                      ),
-                      minLines: 1,
-                      maxLines: 3,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  FloatingActionButton.small(
-                    onPressed: () async {
-                      final text = commentController.text.trim();
-                      if (text.isNotEmpty) {
-                        final postRef = FirebaseFirestore.instance
-                            .collection('posts')
-                            .doc(postId);
-
-                        await postRef.update({
-                          'comments': FieldValue.arrayUnion([
-                            {
-                              'userId': currentUser.uid,
-                              'text': text,
-                              'createdAt': FieldValue.serverTimestamp(),
-                            },
-                          ]),
-                          'commentsCount': FieldValue.increment(1),
-                        });
-
-                        commentController.clear();
-                        if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('✅ Commentaire publié'),
-                              duration: Duration(seconds: 1),
-                            ),
-                          );
-                        }
-                      }
-                    },
-                    child: const Icon(Icons.send, size: 18),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // Supprime un commentaire
-  Future<void> _deleteComment(String postId, int index) async {
     try {
       final postRef = FirebaseFirestore.instance
           .collection('posts')
           .doc(postId);
 
-      final doc = await postRef.get();
-      final comments = List<Map<String, dynamic>>.from(
-        doc['comments'] ?? [],
-      );
+      // Ajouter le commentaire dans la sous-collection
+      await postRef.collection('comments').add(commentData);
 
-      if (index >= 0 && index < comments.length) {
-        comments.removeAt(index);
-        await postRef.update({
-          'comments': comments,
-          'commentsCount': FieldValue.increment(-1),
-        });
-
-        if (mounted) {
-          Navigator.pop(context);
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('✅ Commentaire supprimé'),
-              duration: Duration(seconds: 1),
-            ),
-          );
-        }
-      }
+      // Mettre à jour le compteur de commentaires
+      await postRef.update({'commentsCount': FieldValue.increment(1)});
     } catch (e) {
+      print('Erreur lors de l\'ajout du commentaire: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erreur: $e')),
+          const SnackBar(
+            content: Text(
+              'Impossible d\'ajouter le commentaire. Vérifie ta connexion et réessaie.',
+            ),
+          ),
         );
       }
     }
+  }
+
+  Future<void> _deleteComment(String postId, String commentId) async {
+    try {
+      final postRef = FirebaseFirestore.instance
+          .collection('posts')
+          .doc(postId);
+
+      // Supprimer le commentaire
+      await postRef.collection('comments').doc(commentId).delete();
+
+      // Décrémenter le compteur de commentaires
+      await postRef.update({'commentsCount': FieldValue.increment(-1)});
+    } catch (e) {
+      print('Erreur lors de la suppression du commentaire: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Erreur lors de la suppression du commentaire'),
+          ),
+        );
+      }
+    }
+  }
+
+  void _showCommentsSheet(
+    BuildContext context,
+    String postId,
+    User currentUser,
+  ) {
+    final commentController = TextEditingController();
+    final focusNode = FocusNode();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.9,
+        minChildSize: 0.5,
+        maxChildSize: 0.95,
+        expand: false,
+        builder: (context, scrollController) => SafeArea(
+          child: AnimatedPadding(
+            duration: const Duration(milliseconds: 150),
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(context).viewInsets.bottom,
+            ),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Header
+                  Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Row(
+                      children: [
+                        const Text(
+                          'Commentaires',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const Spacer(),
+                        IconButton(
+                          icon: const Icon(Icons.close),
+                          onPressed: () => Navigator.pop(context),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Divider(height: 1),
+                  // Comments List
+                  Expanded(
+                    child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+                      stream: FirebaseFirestore.instance
+                          .collection('posts')
+                          .doc(postId)
+                          .collection('comments')
+                          .orderBy('createdAt', descending: true)
+                          .snapshots(),
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
+                          return const Center(
+                            child: CircularProgressIndicator(),
+                          );
+                        }
+
+                        final comments = snapshot.data?.docs ?? [];
+
+                        if (comments.isEmpty) {
+                          return Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.comment_outlined,
+                                  size: 48,
+                                  color: Colors.grey[400],
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Aucun commentaire pour le moment',
+                                  style: TextStyle(color: Colors.grey[600]),
+                                ),
+                              ],
+                            ),
+                          );
+                        }
+
+                        return ListView.builder(
+                          controller: scrollController,
+                          keyboardDismissBehavior:
+                              ScrollViewKeyboardDismissBehavior.onDrag,
+                          itemCount: comments.length,
+                          itemBuilder: (context, index) {
+                            final doc = comments[index];
+                            final data = doc.data();
+                            final text = data['text'] as String? ?? '';
+                            final createdAt = data['createdAt'];
+                            final timestamp = createdAt is Timestamp
+                                ? createdAt.toDate()
+                                : DateTime.now();
+                            final userName =
+                                (data['userName'] as String?) ??
+                                (data['username'] as String?) ??
+                                'Utilisateur';
+                            final userPhoto =
+                                (data['userPhoto'] as String?) ?? '';
+
+                            return Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 10,
+                              ),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  CircleAvatar(
+                                    radius: 18,
+                                    backgroundImage: userPhoto.isNotEmpty
+                                        ? NetworkImage(userPhoto)
+                                        : null,
+                                    child: userPhoto.isEmpty
+                                        ? const Icon(Icons.person)
+                                        : null,
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            Expanded(
+                                              child: Text(
+                                                userName,
+                                                style: const TextStyle(
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 13,
+                                                ),
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ),
+                                            const SizedBox(width: 8),
+                                            Text(
+                                              _getTimeAgo(timestamp),
+                                              style: TextStyle(
+                                                color: Colors.grey[600],
+                                                fontSize: 11,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Container(
+                                          width: double.infinity,
+                                          padding: const EdgeInsets.all(10),
+                                          decoration: BoxDecoration(
+                                            color: Colors.grey[100],
+                                            borderRadius: BorderRadius.circular(
+                                              12,
+                                            ),
+                                          ),
+                                          child: Text(
+                                            text,
+                                            style: const TextStyle(
+                                              fontSize: 13,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        );
+                      },
+                    ),
+                  ),
+                  // Input area
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      border: Border(top: BorderSide(color: Colors.grey[300]!)),
+                    ),
+                    padding: const EdgeInsets.only(
+                      left: 8,
+                      right: 8,
+                      top: 12,
+                      bottom: 8,
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            focusNode: focusNode,
+                            controller: commentController,
+                            textInputAction: TextInputAction.newline,
+                            keyboardType: TextInputType.multiline,
+                            minLines: 1,
+                            maxLines: 5,
+                            onTap: () {
+                              // Scroll to keep the input visible when the keyboard opens
+                              if (scrollController.hasClients) {
+                                scrollController.animateTo(
+                                  0,
+                                  duration: const Duration(milliseconds: 200),
+                                  curve: Curves.easeOut,
+                                );
+                              }
+                            },
+                            decoration: InputDecoration(
+                              hintText: 'Ajouter un commentaire...',
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(18),
+                                borderSide: BorderSide.none,
+                              ),
+                              filled: true,
+                              fillColor: Colors.grey[100],
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 12,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        FloatingActionButton.small(
+                          heroTag: 'send-comment-$postId',
+                          onPressed: () async {
+                            final text = commentController.text.trim();
+                            if (text.isNotEmpty) {
+                              try {
+                                final postRef = FirebaseFirestore.instance
+                                    .collection('posts')
+                                    .doc(postId);
+
+                                final userName = currentUser.displayName
+                                    ?.trim();
+                                final fallbackName =
+                                    (currentUser.email ?? 'Utilisateur')
+                                        .split('@')
+                                        .first;
+
+                                await postRef.collection('comments').add({
+                                  'userId': currentUser.uid,
+                                  'userName': (userName?.isNotEmpty ?? false)
+                                      ? userName
+                                      : fallbackName,
+                                  'userPhoto': currentUser.photoURL,
+                                  'text': text,
+                                  'createdAt': FieldValue.serverTimestamp(),
+                                });
+
+                                await postRef.update({
+                                  'commentsCount': FieldValue.increment(1),
+                                });
+
+                                commentController.clear();
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('✅ Commentaire publié'),
+                                      duration: Duration(seconds: 1),
+                                    ),
+                                  );
+                                }
+                              } catch (e) {
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        'Impossible d\'envoyer le commentaire. Vérifie ta connexion et réessaie.',
+                                      ),
+                                    ),
+                                  );
+                                }
+                              }
+                            }
+                          },
+                          child: const Icon(Icons.send, size: 18),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   // Dialog pour signaler un contenu

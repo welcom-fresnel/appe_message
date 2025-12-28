@@ -82,14 +82,25 @@ const AppShowcase = () => {
               </div>
 
               <div className="flex flex-wrap gap-4">
-                <Button className="bg-gradient-hero text-primary-foreground shadow-medium hover:opacity-90">
+                <a
+                  href="#"
+                  className="bg-gradient-hero text-primary-foreground shadow-medium hover:opacity-90 flex items-center px-4 py-2 rounded-md"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ textDecoration: 'none' }}
+                >
                   <Download className="mr-2" size={18} />
                   App Store
-                </Button>
-                <Button variant="outline" className="shadow-soft">
+                </a>
+                <a
+                  href="/appex.apk"
+                  download
+                  className="border border-primary shadow-soft flex items-center px-4 py-2 rounded-md text-primary hover:bg-primary/10 transition-colors"
+                  style={{ textDecoration: 'none' }}
+                >
                   <Download className="mr-2" size={18} />
-                  Google Play
-                </Button>
+                  Télécharger Android (APK)
+                </a>
               </div>
             </div>
 

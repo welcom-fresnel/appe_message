@@ -1,6 +1,7 @@
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 /// Modèle pour la réponse Cloudinary
 class CloudinaryUploadResponse {
@@ -38,8 +39,9 @@ class CloudinaryUploadResponse {
     String quality = 'auto',
     String fetch = 'auto',
   }) {
+    final cloudName = dotenv.env['CLOUDINARY_CLOUD_NAME'] ?? 'dfw0pwwdr';
     final baseUrl =
-        'https://res.cloudinary.com/dfw0pwwdr/image/upload/f_$fetch,q_$quality';
+        'https://res.cloudinary.com/$cloudName/image/upload/f_$fetch,q_$quality';
 
     String transformations = '';
     if (width != null || height != null) {
@@ -63,10 +65,10 @@ class CloudinaryService {
   CloudinaryService._();
   static final CloudinaryService instance = CloudinaryService._();
 
-  static const String _cloudName = 'dfw0pwwdr';
-  static const String _uploadPreset = 'hermine_unsigned_images';
-  static const String _uploadUrl =
-      'https://api.cloudinary.com/v1_1/$_cloudName/auto/upload';
+  // Récupérer les valeurs depuis les variables d'environnement
+  String get _cloudName => dotenv.env['CLOUDINARY_CLOUD_NAME'] ?? 'dfw0pwwdr';
+  String get _uploadPreset => dotenv.env['CLOUDINARY_UPLOAD_PRESET'] ?? 'hermine_unsigned_images';
+  String get _uploadUrl => 'https://api.cloudinary.com/v1_1/$_cloudName/auto/upload';
 
   /// Upload une image vers Cloudinary
   Future<CloudinaryUploadResponse?> uploadImage(
@@ -174,8 +176,9 @@ class CloudinaryService {
       return cloudinaryUrl;
     }
 
+    final cloudName = dotenv.env['CLOUDINARY_CLOUD_NAME'] ?? 'dfw0pwwdr';
     final baseUrl =
-        'https://res.cloudinary.com/$_cloudName/image/upload/f_auto,q_$quality';
+        'https://res.cloudinary.com/$cloudName/image/upload/f_auto,q_$quality';
 
     String transformations = '';
     if (width != null || height != null) {

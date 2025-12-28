@@ -1,0 +1,19 @@
+{
+  "project_info": {
+    "project_number": "VOTRE_PROJECT_NUMBER",
+    "project_id": "votre-project-id-clientB",
+    "storage_bucket": "votre-project-id-clientB.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:VOTRE_APP_ID:android:VOTRE_HASH",
+        "android_client_info": {
+          "package_name": "com.hermine.hermin.clientB"
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
+

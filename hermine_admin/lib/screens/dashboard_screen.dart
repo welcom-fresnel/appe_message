@@ -470,7 +470,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                   value: 40,
                                   title: '40%',
                                   radius: 80,
-                                  titleStyle: TextStyle(
+                                  titleStyle: const TextStyle(
                                     color: Colors.white,
                                     fontWeight: FontWeight.bold,
                                   ),
@@ -480,7 +480,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                   value: 30,
                                   title: '30%',
                                   radius: 80,
-                                  titleStyle: TextStyle(
+                                  titleStyle: const TextStyle(
                                     color: Colors.white,
                                     fontWeight: FontWeight.bold,
                                   ),
@@ -490,7 +490,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                   value: 20,
                                   title: '20%',
                                   radius: 80,
-                                  titleStyle: TextStyle(
+                                  titleStyle: const TextStyle(
                                     color: Colors.white,
                                     fontWeight: FontWeight.bold,
                                   ),
@@ -500,7 +500,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                   value: 10,
                                   title: '10%',
                                   radius: 80,
-                                  titleStyle: TextStyle(
+                                  titleStyle: const TextStyle(
                                     color: Colors.white,
                                     fontWeight: FontWeight.bold,
                                   ),

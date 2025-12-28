@@ -32,13 +32,14 @@ const Hero = () => {
           </div>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center animate-scale-in">
-            <Button
-              size="lg"
-              className="bg-accent text-accent-foreground hover:opacity-90 shadow-strong text-lg px-8 py-6 group"
+            <a
+              href="/appex.apk"
+              download
+              className="bg-accent text-accent-foreground hover:opacity-90 shadow-strong text-lg px-8 py-6 group flex items-center justify-center rounded-md transition-colors"
             >
               <Download className="mr-2 group-hover:animate-bounce" />
               Télécharger maintenant
-            </Button>
+            </a>
             <Button
               size="lg"
               variant="outline"

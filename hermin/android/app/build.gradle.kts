@@ -34,6 +34,27 @@ android {
         versionName = flutter.versionName
     }
 
+    // Configuration des Flavors pour White-Label
+    flavorDimensions += "client"
+    productFlavors {
+        create("dev") {
+            dimension = "client"
+            applicationIdSuffix = ".dev"
+            versionNameSuffix = "-dev"
+            resValue("string", "app_name", "Hermin Dev")
+        }
+        create("clientA") {
+            dimension = "client"
+            applicationIdSuffix = ".clientA"
+            resValue("string", "app_name", "App Client A")
+        }
+        create("clientB") {
+            dimension = "client"
+            applicationIdSuffix = ".clientB"
+            resValue("string", "app_name", "App Client B")
+        }
+    }
+
     buildTypes {
         release {
             // TODO: Add your own signing config for the release build.
@@ -48,5 +69,5 @@ flutter {
 }
 
 dependencies {
-    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
 }

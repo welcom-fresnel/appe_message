@@ -23,6 +23,30 @@ class _AuthScreenState extends State<AuthScreen> {
   bool _isSignUp = false;
   String? _category; // 'parent' | 'élève'
 
+  String _friendlyAuthError(FirebaseAuthException e, {bool isSignUp = false}) {
+    switch (e.code) {
+      case 'network-request-failed':
+        return 'Connexion impossible. Vérifie ta connexion internet et réessaie.';
+      case 'invalid-credential':
+      case 'invalid-email':
+      case 'user-not-found':
+      case 'wrong-password':
+        return 'Email ou mot de passe incorrect.';
+      case 'too-many-requests':
+        return 'Trop de tentatives. Réessaie dans quelques instants.';
+      case 'email-already-in-use':
+        return isSignUp
+            ? 'Cet email est déjà utilisé. Connecte-toi ou choisis un autre email.'
+            : 'Email déjà utilisé.';
+      case 'weak-password':
+        return 'Mot de passe trop faible. Utilise au moins 6 caractères.';
+      default:
+        return isSignUp
+            ? 'Création du compte impossible. Réessaie.'
+            : 'Connexion impossible. Réessaie.';
+    }
+  }
+
   Future<void> _signIn() async {
     setState(() {
       _loading = true;
@@ -41,9 +65,12 @@ class _AuthScreenState extends State<AuthScreen> {
         }, SetOptions(merge: true));
       }
     } on FirebaseAuthException catch (e) {
-      setState(() => _error = e.message);
-    } on FirebaseException catch (e) {
-      setState(() => _error = e.message);
+      setState(() => _error = _friendlyAuthError(e));
+    } on FirebaseException catch (_) {
+      setState(
+        () => _error =
+            'Connexion impossible. Vérifie ta connexion internet et réessaie.',
+      );
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -72,7 +99,7 @@ class _AuthScreenState extends State<AuthScreen> {
         await user.updateDisplayName(display);
       }
       final uid = user.uid;
-      
+
       // Générer les keywords pour la recherche
       final keywords = <String>{};
       if (first.isNotEmpty) {
@@ -91,7 +118,7 @@ class _AuthScreenState extends State<AuthScreen> {
       if (phone.isNotEmpty) {
         keywords.add(phone);
       }
-      
+
       await FirebaseFirestore.instance.collection('users').doc(uid).set({
         'uid': uid,
         'username': display.isNotEmpty ? display : _emailController.text.trim(),
@@ -109,9 +136,12 @@ class _AuthScreenState extends State<AuthScreen> {
         'fcmToken': null,
       }, SetOptions(merge: true));
     } on FirebaseAuthException catch (e) {
-      setState(() => _error = e.message);
-    } on FirebaseException catch (e) {
-      setState(() => _error = e.message);
+      setState(() => _error = _friendlyAuthError(e, isSignUp: true));
+    } on FirebaseException catch (_) {
+      setState(
+        () => _error =
+            'Création du compte impossible. Vérifie ta connexion internet et réessaie.',
+      );
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -157,7 +187,7 @@ class _AuthScreenState extends State<AuthScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Hermine')),
+      appBar: AppBar(title: const Text('LEAURRY-FLORIDE')),
       body: Stack(
         children: [
           Positioned.fill(
@@ -380,9 +410,9 @@ class _AuthScreenState extends State<AuthScreen> {
                                 child: Text('Parent'),
                               ),
                               DropdownMenuItem(
-                                value: 'élève',
+                                value: 'eleve',
                                 child: Text('Élève'),
-                              ),
+                              ), // <-- 'eleve' sans accent
                             ],
                             onChanged: (v) => setState(() => _category = v),
                             validator: (v) => v == null ? 'Requis' : null,
