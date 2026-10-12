@@ -123,6 +123,14 @@ class _FeedScreenState extends State<FeedScreen> {
     }
   }
 
+  void _viewImageFullscreen(BuildContext context, String imageUrl) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => _ImageFullscreenView(imageUrl: imageUrl),
+      ),
+    );
+  }
+
   void _showAddPostDialog() {
     showModalBottomSheet(
       context: context,
@@ -211,7 +219,7 @@ class _FeedScreenState extends State<FeedScreen> {
                 },
                 icon: const Icon(
                   Icons.notification_add_outlined,
-                  color: Colors.blueAccent,
+                  color: Colors.blue,
                 ),
               ),
               if (_unreadNotifications > 0)
@@ -221,7 +229,7 @@ class _FeedScreenState extends State<FeedScreen> {
                   child: Container(
                     padding: const EdgeInsets.all(4),
                     decoration: BoxDecoration(
-                      color: Colors.red,
+                      color: Colors.blue[700],
                       borderRadius: BorderRadius.circular(10),
                     ),
                     constraints: const BoxConstraints(
@@ -253,7 +261,7 @@ class _FeedScreenState extends State<FeedScreen> {
                 prefixIcon: const Icon(Icons.search),
                 hintText: 'Rechercher...',
                 filled: true,
-                fillColor: Colors.grey.shade100,
+                fillColor: Colors.blue[100],
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(24),
                   borderSide: BorderSide.none,
@@ -368,29 +376,35 @@ class _FeedScreenState extends State<FeedScreen> {
                             if (mediaUrls.isNotEmpty)
                               _PostMediaCarousel(urls: mediaUrls),
                             if (mediaUrls.isEmpty && imageUrl != null)
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(12),
-                                child: AspectRatio(
-                                  aspectRatio: 4 / 5,
-                                  child: Image.network(
-                                    imageUrl,
-                                    fit: BoxFit.cover,
-                                    loadingBuilder: (context, child, progress) {
-                                      if (progress == null) return child;
-                                      return const SizedBox(
-                                        height: 260,
-                                        child: Center(
-                                          child: CircularProgressIndicator(),
-                                        ),
-                                      );
-                                    },
-                                    errorBuilder: (context, error, stack) =>
-                                        const Padding(
-                                          padding: EdgeInsets.all(8.0),
-                                          child: Text(
-                                            'Impossible d\'afficher l\'image',
+                              GestureDetector(
+                                onTap: () =>
+                                    _viewImageFullscreen(context, imageUrl),
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(12),
+                                  child: AspectRatio(
+                                    aspectRatio: 4 / 5,
+                                    child: Image.network(
+                                      imageUrl,
+                                      fit: BoxFit.cover,
+                                      loadingBuilder:
+                                          (context, child, progress) {
+                                            if (progress == null) return child;
+                                            return const SizedBox(
+                                              height: 260,
+                                              child: Center(
+                                                child:
+                                                    CircularProgressIndicator(),
+                                              ),
+                                            );
+                                          },
+                                      errorBuilder: (context, error, stack) =>
+                                          const Padding(
+                                            padding: EdgeInsets.all(8.0),
+                                            child: Text(
+                                              'Impossible d\'afficher l\'image',
+                                            ),
                                           ),
-                                        ),
+                                    ),
                                   ),
                                 ),
                               ),
@@ -471,8 +485,8 @@ class _FeedScreenState extends State<FeedScreen> {
                                                 ? Icons.favorite
                                                 : Icons.favorite_border,
                                             color: isLiked
-                                                ? Colors.red
-                                                : Colors.grey,
+                                                ? Colors.blue[700]
+                                                : Colors.grey[400],
                                             size: 20,
                                           ),
                                           const SizedBox(width: 4),
@@ -480,8 +494,8 @@ class _FeedScreenState extends State<FeedScreen> {
                                             '${data['likesCount'] ?? 0} J\'aime',
                                             style: TextStyle(
                                               color: isLiked
-                                                  ? Colors.red
-                                                  : Colors.grey[700],
+                                                  ? Colors.blue[700]
+                                                  : Colors.grey[600],
                                               fontWeight: FontWeight.w500,
                                               fontSize: 14,
                                             ),
@@ -508,6 +522,7 @@ class _FeedScreenState extends State<FeedScreen> {
                                       child: Row(
                                         mainAxisAlignment:
                                             MainAxisAlignment.center,
+                                        mainAxisSize: MainAxisSize.min,
                                         children: [
                                           const Icon(
                                             Icons.comment_outlined,
@@ -515,12 +530,15 @@ class _FeedScreenState extends State<FeedScreen> {
                                             size: 20,
                                           ),
                                           const SizedBox(width: 4),
-                                          Text(
-                                            'Voir les ${commentsCount} commentaires',
-                                            style: TextStyle(
-                                              color: Colors.grey[700],
-                                              fontWeight: FontWeight.w500,
-                                              fontSize: 14,
+                                          Flexible(
+                                            child: Text(
+                                              'Voir les ${commentsCount} commentaires',
+                                              style: TextStyle(
+                                                color: Colors.grey[700],
+                                                fontWeight: FontWeight.w500,
+                                                fontSize: 14,
+                                              ),
+                                              overflow: TextOverflow.ellipsis,
                                             ),
                                           ),
                                         ],
@@ -579,7 +597,7 @@ class _FeedScreenState extends State<FeedScreen> {
                                 child: Text(
                                   'Voir les $commentsCount commentaires',
                                   style: TextStyle(
-                                    color: Colors.blue[600],
+                                    color: Colors.blue[700],
                                     fontWeight: FontWeight.w600,
                                     fontSize: 12,
                                   ),
@@ -609,14 +627,14 @@ class _FeedScreenState extends State<FeedScreen> {
                                               text: '$userName ',
                                               style: const TextStyle(
                                                 fontWeight: FontWeight.bold,
-                                                color: Colors.black,
+                                                color: Color(0xFF757575),
                                                 fontSize: 13,
                                               ),
                                             ),
                                             TextSpan(
                                               text: commentText,
                                               style: const TextStyle(
-                                                color: Colors.black87,
+                                                color: Color(0xFF757575),
                                                 fontSize: 13,
                                               ),
                                             ),
@@ -1132,15 +1150,26 @@ class _PostMediaCarouselState extends State<_PostMediaCarousel> {
               controller: _controller,
               onPageChanged: (i) => setState(() => _index = i),
               itemCount: widget.urls.length,
-              itemBuilder: (context, i) => Image.network(
-                widget.urls[i],
-                fit: BoxFit.cover,
-                loadingBuilder: (context, child, progress) {
-                  if (progress == null) return child;
-                  return const Center(child: CircularProgressIndicator());
+              itemBuilder: (context, i) => GestureDetector(
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) =>
+                          _ImageFullscreenView(imageUrl: widget.urls[i]),
+                    ),
+                  );
                 },
-                errorBuilder: (context, error, stack) =>
-                    const Center(child: Text("Impossible d'afficher l'image")),
+                child: Image.network(
+                  widget.urls[i],
+                  fit: BoxFit.cover,
+                  loadingBuilder: (context, child, progress) {
+                    if (progress == null) return child;
+                    return const Center(child: CircularProgressIndicator());
+                  },
+                  errorBuilder: (context, error, stack) => const Center(
+                    child: Text("Impossible d'afficher l'image"),
+                  ),
+                ),
               ),
             ),
           ),
@@ -1221,6 +1250,54 @@ class _AudioPlayerTileState extends State<AudioPlayerTile> {
           ),
         );
       },
+    );
+  }
+}
+
+// Widget pour afficher l'image en plein écran
+class _ImageFullscreenView extends StatelessWidget {
+  final String imageUrl;
+
+  const _ImageFullscreenView({required this.imageUrl});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        iconTheme: const IconThemeData(color: Colors.white),
+      ),
+      body: Center(
+        child: InteractiveViewer(
+          minScale: 0.5,
+          maxScale: 4.0,
+          child: Image.network(
+            imageUrl,
+            fit: BoxFit.contain,
+            loadingBuilder: (context, child, progress) {
+              if (progress == null) return child;
+              return const Center(
+                child: CircularProgressIndicator(color: Colors.white),
+              );
+            },
+            errorBuilder: (context, error, stack) => const Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.error_outline, color: Colors.white, size: 64),
+                  SizedBox(height: 16),
+                  Text(
+                    'Impossible de charger l\'image',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

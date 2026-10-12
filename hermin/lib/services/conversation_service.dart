@@ -69,6 +69,7 @@ class ConversationService {
     // update conversation
     await _fs.collection('conversations').doc(conversationId).update({
       'lastMessage': (text != null && text.isNotEmpty) ? text : (mediaUrls != null && mediaUrls.isNotEmpty ? '📷 Image' : ''),
+      'lastMessageSenderId': senderId,
       'lastUpdated': FieldValue.serverTimestamp(),
     });
 
@@ -107,5 +108,18 @@ class ConversationService {
         .collection('messages')
         .orderBy('createdAt', descending: false)
         .snapshots();
+  }
+
+  /// Marquer une conversation comme lue pour l'utilisateur actuel
+  Future<void> markConversationAsRead(String conversationId, String userId) async {
+    try {
+      await _fs.collection('users').doc(userId).set({
+        'conversationsLastRead': {
+          conversationId: FieldValue.serverTimestamp(),
+        },
+      }, SetOptions(merge: true));
+    } catch (e) {
+      print('Erreur lors du marquage comme lu: $e');
+    }
   }
 }

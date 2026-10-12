@@ -13,9 +13,9 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  final Color _primaryColor = const Color(0xFF4F6F52);
-  final Color _accentColor = const Color(0xFF86A789);
-  final Color _backgroundColor = const Color(0xFFF5EFE6);
+  final Color _primaryColor = Colors.blue[700]!;
+  final Color _accentColor = Colors.blue[100]!;
+  final Color _backgroundColor = Colors.white;
   final _scaffoldKey = GlobalKey<ScaffoldState>();
 
   DocumentReference<Map<String, dynamic>>? _userRef;
@@ -42,9 +42,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   String _resolvedPhotoUrl() {
     final photoUrl = (_data?['photoUrl'] as String?)?.trim();
     final authorPhotoUrl = (_data?['authorPhotoUrl'] as String?)?.trim();
-    return (photoUrl?.isNotEmpty ?? false)
-        ? photoUrl!
-        : (authorPhotoUrl ?? '');
+    return (photoUrl?.isNotEmpty ?? false) ? photoUrl! : (authorPhotoUrl ?? '');
   }
 
   String _resolvedRole() {
@@ -353,10 +351,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
             children: [
               CircleAvatar(
                 radius: 34,
-                backgroundImage: (photoUrl != null && photoUrl.isNotEmpty)
+                backgroundColor: _accentColor,
+                backgroundImage: photoUrl.isNotEmpty
                     ? NetworkImage(photoUrl)
                     : null,
-                child: (photoUrl == null || photoUrl.isEmpty)
+                child: photoUrl.isEmpty
                     ? const Icon(Icons.person, size: 34, color: Colors.white)
                     : null,
               ),
@@ -796,7 +795,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
             'Envoie un email de réinitialisation au compte connecté',
           ),
           onTap: _sendPasswordResetEmail,
-          trailing: Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey[600]),
+          trailing: Icon(
+            Icons.arrow_forward_ios,
+            size: 16,
+            color: Colors.grey[600],
+          ),
         ),
         const SizedBox(height: 8),
         Text(
@@ -960,7 +963,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   final data = docs[index].data();
                   final postId = docs[index].id;
                   final text = (data['text'] as String?) ?? '';
-                  final mediaUrls = (data['mediaUrls'] as List<dynamic>?)
+                  final mediaUrls =
+                      (data['mediaUrls'] as List<dynamic>?)
                           ?.map((e) => e as String)
                           .toList() ??
                       [];
@@ -1028,18 +1032,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             ClipRRect(
                               borderRadius: BorderRadius.circular(8),
                               child: Image.network(
-                                mediaUrls.isNotEmpty ? mediaUrls.first : imageUrl,
+                                mediaUrls.isNotEmpty
+                                    ? mediaUrls.first
+                                    : imageUrl,
                                 height: 120,
                                 width: double.infinity,
                                 fit: BoxFit.cover,
                                 errorBuilder: (context, error, stack) =>
                                     Container(
-                                  height: 120,
-                                  color: Colors.grey[200],
-                                  child: const Center(
-                                    child: Icon(Icons.image_not_supported),
-                                  ),
-                                ),
+                                      height: 120,
+                                      color: Colors.grey[200],
+                                      child: const Center(
+                                        child: Icon(Icons.image_not_supported),
+                                      ),
+                                    ),
                               ),
                             ),
                           ],
@@ -1048,8 +1054,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           const SizedBox(height: 8),
                           Row(
                             children: [
-                              Icon(Icons.favorite_outline,
-                                  size: 16, color: Colors.red[600]),
+                              Icon(
+                                Icons.favorite_outline,
+                                size: 16,
+                                color: Colors.red[600],
+                              ),
                               const SizedBox(width: 4),
                               Text(
                                 '${likes.length}',
@@ -1059,8 +1068,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 ),
                               ),
                               const SizedBox(width: 16),
-                              Icon(Icons.comment_outlined,
-                                  size: 16, color: Colors.grey[600]),
+                              Icon(
+                                Icons.comment_outlined,
+                                size: 16,
+                                color: Colors.grey[600],
+                              ),
                               const SizedBox(width: 4),
                               Text(
                                 '${comments.length}',
@@ -1083,7 +1095,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Future<void> _showDeletePublicationDialog(String postId, String preview) async {
+  Future<void> _showDeletePublicationDialog(
+    String postId,
+    String preview,
+  ) async {
     await showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -1092,9 +1107,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Êtes-vous sûr de vouloir supprimer cette publication?',
-            ),
+            const Text('Êtes-vous sûr de vouloir supprimer cette publication?'),
             const SizedBox(height: 12),
             Container(
               padding: const EdgeInsets.all(8),
@@ -1135,9 +1148,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               Navigator.pop(ctx);
               await _deletePublication(postId);
             },
-            style: TextButton.styleFrom(
-              foregroundColor: Colors.red,
-            ),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
             child: const Text('Supprimer'),
           ),
         ],
@@ -1204,16 +1215,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     title: const Text('Profil'),
                     actions: [
                       IconButton(
-                            onPressed: _load,
-                            icon: const Icon(Icons.refresh),
+                        onPressed: _load,
+                        icon: const Icon(Icons.refresh),
                       ),
-                          IconButton(
-                            onPressed: () {
-                              Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ChatListScreen()));
-                            },
-                            icon: const Icon(Icons.chat_bubble_outline),
-                            tooltip: 'Messages',
-                          ),
+                      IconButton(
+                        onPressed: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => const ChatListScreen(),
+                            ),
+                          );
+                        },
+                        icon: const Icon(Icons.chat_bubble_outline),
+                        tooltip: 'Messages',
+                      ),
                     ],
                   ),
                   SliverToBoxAdapter(child: _buildHeader()),

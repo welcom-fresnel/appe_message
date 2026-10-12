@@ -1,5 +1,7 @@
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'dart:math';
+
+import 'package:flutter/foundation.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 /// Service pour afficher les notifications locales
 class NotificationService {
@@ -20,7 +22,7 @@ class NotificationService {
     );
 
     await _fln.initialize(
-      initSettings,
+      settings: initSettings,
       onDidReceiveNotificationResponse: _handleNotificationTap,
     );
 
@@ -65,24 +67,24 @@ class NotificationService {
     );
 
     await _fln.show(
-      _generateUniqueId(),
-      title,
-      body,
-      details,
+      id: _generateUniqueId(),
+      title: title,
+      body: body,
+      notificationDetails: details,
       payload: payload,
     );
 
-    print('🔔 Notification affichée: $title');
+    debugPrint('Notification affichee: $title');
   }
 
-  /// Génère un ID unique pour éviter les collisions
+  /// Genere un ID unique pour eviter les collisions
   int _generateUniqueId() {
     return _random.nextInt(2147483647);
   }
 
-  /// Gère le tap sur une notification
+  /// Gere le tap sur une notification
   void _handleNotificationTap(NotificationResponse response) {
-    print('Notification tapée: ${response.payload}');
+    debugPrint('Notification tapee: ${response.payload}');
     // Tu peux ajouter la navigation ici
   }
 }

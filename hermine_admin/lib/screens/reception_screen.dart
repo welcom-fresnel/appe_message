@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:hermine_admin/screens/ChatScreen.dart';
+import 'package:leaurry_floride/screens/ChatScreen.dart';
 import 'compose_message_screen.dart';
 
 class ReceptionScreen extends StatefulWidget {

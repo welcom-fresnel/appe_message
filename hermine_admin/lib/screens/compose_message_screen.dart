@@ -269,7 +269,15 @@ class _ComposeMessageScreenState extends State<ComposeMessageScreen> {
     if (res.statusCode == 200) {
       final body = await res.stream.bytesToString();
       final data = jsonDecode(body) as Map<String, dynamic>;
-      return data['secure_url'] as String?;
+      String url = data['secure_url'] as String? ?? '';
+      
+      // Forcer l'extension .m4a si absente pour compatibilité lecteur
+      if (!url.contains('.m4a') && !url.contains('.mp3') && !url.contains('.aac')) {
+        // Ajouter le format dans l'URL Cloudinary
+        url = url.replaceFirst('/upload/', '/upload/fl_attachment:audio.m4a/');
+      }
+      
+      return url;
     } else {
       final err = await res.stream.bytesToString();
       throw Exception('Cloudinary error ${res.statusCode}: $err');

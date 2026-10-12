@@ -5,11 +5,11 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'services/index.dart';
 import 'screens/auth_screen.dart';
 import 'screens/home_shell.dart';
+import 'ui/theme/app_theme.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Charger l'environnement en fonction du Flavor
   const flavor = String.fromEnvironment('FLAVOR', defaultValue: 'dev');
   await dotenv.load(fileName: 'environments/.env.$flavor');
 
@@ -27,10 +27,9 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: dotenv.env['APP_NAME'] ?? 'Hermin',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF5B61F6)),
-        useMaterial3: true,
-      ),
+      theme: AppTheme.light(),
+      darkTheme: AppTheme.dark(),
+      themeMode: ThemeMode.system,
       home: StreamBuilder<User?>(
         stream: FirebaseAuth.instance.authStateChanges(),
         builder: (context, snapshot) {
@@ -38,7 +37,6 @@ class MyApp extends StatelessWidget {
             return const Scaffold(body: Center(child: CircularProgressIndicator()));
           }
           if (snapshot.hasData) {
-            // Démarrer l'écoute des messages quand l'utilisateur est connecté
             MessageListenerService.instance.startListening();
             return const HomeShell();
           }
@@ -48,3 +46,4 @@ class MyApp extends StatelessWidget {
     );
   }
 }
+

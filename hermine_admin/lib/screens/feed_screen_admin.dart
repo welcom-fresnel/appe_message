@@ -3,8 +3,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
-import 'package:hermine_admin/services/cloudinary_service.dart';
-import 'package:hermine_admin/widgets/post_media_carousel.dart';
+import 'package:leaurry_floride/services/cloudinary_service.dart';
+import 'package:leaurry_floride/widgets/post_media_carousel.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 
 class FeedScreenAdmin extends StatefulWidget {
@@ -45,10 +45,13 @@ class _FeedScreenAdminState extends State<FeedScreenAdmin> {
 
       // Upload images to Cloudinary
       for (final image in _selectedImages) {
-        final uploadResponse = await CloudinaryService.instance.uploadImage(image);
+        final uploadResponse = await CloudinaryService.instance.uploadImage(
+          image,
+        );
         if (uploadResponse != null) {
           mediaUrls.add(uploadResponse.secureUrl);
-          if (uploadResponse.publicId.isNotEmpty) mediaPublicIds.add(uploadResponse.publicId);
+          if (uploadResponse.publicId.isNotEmpty)
+            mediaPublicIds.add(uploadResponse.publicId);
         }
       }
 
@@ -79,9 +82,9 @@ class _FeedScreenAdminState extends State<FeedScreenAdmin> {
       );
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erreur: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Erreur: $e')));
       }
       setState(() => _isPosting = false);
     }
@@ -173,9 +176,9 @@ class _FeedScreenAdminState extends State<FeedScreenAdmin> {
       });
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erreur like: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Erreur like: $e')));
       }
     }
   }
@@ -201,27 +204,42 @@ class _FeedScreenAdminState extends State<FeedScreenAdmin> {
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   const Spacer(),
-                  IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context)),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.pop(context),
+                  ),
                 ],
               ),
             ),
             const Divider(),
             Expanded(
               child: StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
-                stream: FirebaseFirestore.instance.collection('posts').doc(postId).snapshots(),
+                stream: FirebaseFirestore.instance
+                    .collection('posts')
+                    .doc(postId)
+                    .snapshots(),
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const Center(child: CircularProgressIndicator());
                   }
-                  final comments = List<Map<String, dynamic>>.from(snapshot.data?['comments'] ?? []);
+                  final comments = List<Map<String, dynamic>>.from(
+                    snapshot.data?['comments'] ?? [],
+                  );
                   if (comments.isEmpty) {
                     return Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.comment_outlined, size: 48, color: Colors.grey[400]),
+                          Icon(
+                            Icons.comment_outlined,
+                            size: 48,
+                            color: Colors.grey[400],
+                          ),
                           const SizedBox(height: 8),
-                          Text('Aucun commentaire pour le moment', style: TextStyle(color: Colors.grey[600])),
+                          Text(
+                            'Aucun commentaire pour le moment',
+                            style: TextStyle(color: Colors.grey[600]),
+                          ),
                         ],
                       ),
                     );
@@ -234,7 +252,9 @@ class _FeedScreenAdminState extends State<FeedScreenAdmin> {
                       final text = c['text'] ?? '';
                       final uid = c['userId'] ?? '';
                       final createdAt = c['createdAt'];
-                      final timestamp = createdAt is Timestamp ? createdAt.toDate() : DateTime.now();
+                      final timestamp = createdAt is Timestamp
+                          ? createdAt.toDate()
+                          : DateTime.now();
                       return ListTile(
                         title: Text(text),
                         subtitle: Text('$uid • ${timestamp.toString()}'),
@@ -245,14 +265,33 @@ class _FeedScreenAdminState extends State<FeedScreenAdmin> {
               ),
             ),
             Container(
-              decoration: BoxDecoration(border: Border(top: BorderSide(color: Colors.grey[300]!))),
-              padding: EdgeInsets.only(left: 16, right: 16, top: 12, bottom: MediaQuery.of(context).viewInsets.bottom + 12),
+              decoration: BoxDecoration(
+                border: Border(top: BorderSide(color: Colors.grey[300]!)),
+              ),
+              padding: EdgeInsets.only(
+                left: 16,
+                right: 16,
+                top: 12,
+                bottom: MediaQuery.of(context).viewInsets.bottom + 12,
+              ),
               child: Row(
                 children: [
                   Expanded(
                     child: TextField(
                       controller: commentController,
-                      decoration: InputDecoration(hintText: 'Ajouter un commentaire...', border: OutlineInputBorder(borderRadius: BorderRadius.circular(24), borderSide: BorderSide.none), filled: true, fillColor: Colors.grey[100], contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10)),
+                      decoration: InputDecoration(
+                        hintText: 'Ajouter un commentaire...',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(24),
+                          borderSide: BorderSide.none,
+                        ),
+                        filled: true,
+                        fillColor: Colors.grey[100],
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 10,
+                        ),
+                      ),
                       minLines: 1,
                       maxLines: 3,
                     ),
@@ -263,16 +302,29 @@ class _FeedScreenAdminState extends State<FeedScreenAdmin> {
                       final text = commentController.text.trim();
                       final currentUser = FirebaseAuth.instance.currentUser;
                       if (text.isEmpty || currentUser == null) return;
-                      final postRef = FirebaseFirestore.instance.collection('posts').doc(postId);
-                      await FirebaseFirestore.instance.runTransaction((transaction) async {
+                      final postRef = FirebaseFirestore.instance
+                          .collection('posts')
+                          .doc(postId);
+                      await FirebaseFirestore.instance.runTransaction((
+                        transaction,
+                      ) async {
                         final snapshot = await transaction.get(postRef);
                         List<dynamic> comments = [];
-                        if (snapshot.exists && snapshot.data() != null && snapshot.data()!.containsKey('comments')) {
+                        if (snapshot.exists &&
+                            snapshot.data() != null &&
+                            snapshot.data()!.containsKey('comments')) {
                           final raw = snapshot['comments'];
                           if (raw is List) comments = List.from(raw);
                         }
-                        comments.add({'userId': currentUser.uid, 'text': text, 'createdAt': FieldValue.serverTimestamp()});
-                        transaction.update(postRef, {'comments': comments, 'commentsCount': FieldValue.increment(1)});
+                        comments.add({
+                          'userId': currentUser.uid,
+                          'text': text,
+                          'createdAt': FieldValue.serverTimestamp(),
+                        });
+                        transaction.update(postRef, {
+                          'comments': comments,
+                          'commentsCount': FieldValue.increment(1),
+                        });
                       });
                       commentController.clear();
                     },
@@ -289,13 +341,41 @@ class _FeedScreenAdminState extends State<FeedScreenAdmin> {
 
   // Report dialog and submission
   void _showReportDialog(BuildContext context, String postId) {
-    final reasons = ['Contenu offensant', 'Spam', 'Contenu violent', 'Partage de données privées', 'Autre'];
+    final reasons = [
+      'Contenu offensant',
+      'Spam',
+      'Contenu violent',
+      'Partage de données privées',
+      'Autre',
+    ];
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Signaler cette publication'),
-        content: Column(mainAxisSize: MainAxisSize.min, children: [const Text('Pourquoi signalez-vous cette publication?'), const SizedBox(height: 12), ...reasons.map((r) => ListTile(title: Text(r), onTap: () { Navigator.pop(context); _submitReport(postId, r); })).toList()]),
-        actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Annuler'))],
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('Pourquoi signalez-vous cette publication?'),
+            const SizedBox(height: 12),
+            ...reasons
+                .map(
+                  (r) => ListTile(
+                    title: Text(r),
+                    onTap: () {
+                      Navigator.pop(context);
+                      _submitReport(postId, r);
+                    },
+                  ),
+                )
+                .toList(),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Annuler'),
+          ),
+        ],
       ),
     );
   }
@@ -304,10 +384,22 @@ class _FeedScreenAdminState extends State<FeedScreenAdmin> {
     try {
       final currentUser = FirebaseAuth.instance.currentUser;
       if (currentUser == null) return;
-      await FirebaseFirestore.instance.collection('reports').add({'postId': postId, 'reportedBy': currentUser.uid, 'reason': reason, 'createdAt': FieldValue.serverTimestamp(), 'status': 'pending'});
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('✅ Merci de votre signalement.')));
+      await FirebaseFirestore.instance.collection('reports').add({
+        'postId': postId,
+        'reportedBy': currentUser.uid,
+        'reason': reason,
+        'createdAt': FieldValue.serverTimestamp(),
+        'status': 'pending',
+      });
+      if (mounted)
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('✅ Merci de votre signalement.')),
+        );
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erreur lors du signalement: $e')));
+      if (mounted)
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erreur lors du signalement: $e')),
+        );
     }
   }
 
@@ -317,15 +409,23 @@ class _FeedScreenAdminState extends State<FeedScreenAdmin> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Supprimer la publication'),
-        content: const Text('Voulez-vous vraiment supprimer cette publication ? Cette action est irréversible.'),
+        content: const Text(
+          'Voulez-vous vraiment supprimer cette publication ? Cette action est irréversible.',
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Annuler')),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Annuler'),
+          ),
           TextButton(
             onPressed: () async {
               Navigator.pop(context);
               await _deletePost(postId);
             },
-            child: const Text('Supprimer', style: TextStyle(color: Colors.redAccent)),
+            child: const Text(
+              'Supprimer',
+              style: TextStyle(color: Colors.redAccent),
+            ),
           ),
         ],
       ),
@@ -335,7 +435,9 @@ class _FeedScreenAdminState extends State<FeedScreenAdmin> {
   // Delete a post document
   Future<void> _deletePost(String postId) async {
     try {
-      final postRef = FirebaseFirestore.instance.collection('posts').doc(postId);
+      final postRef = FirebaseFirestore.instance
+          .collection('posts')
+          .doc(postId);
       final doc = await postRef.get();
       if (doc.exists) {
         final data = doc.data() ?? {};
@@ -375,9 +477,15 @@ class _FeedScreenAdminState extends State<FeedScreenAdmin> {
         // Finally delete the post document
         await postRef.delete();
       }
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('✅ Publication supprimée')));
+      if (mounted)
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('✅ Publication supprimée')),
+        );
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erreur suppression: $e')));
+      if (mounted)
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Erreur suppression: $e')));
     }
   }
 
@@ -426,7 +534,11 @@ class _FeedScreenAdminState extends State<FeedScreenAdmin> {
                   }).toList();
                 }
                 if (docs.isEmpty) {
-                  return const Center(child: Text('Aucune publication \n\t\tconnecter vous a internet .........'));
+                  return const Center(
+                    child: Text(
+                      'Aucune publication \n\t\tconnecter vous a internet .........',
+                    ),
+                  );
                 }
                 return ListView.builder(
                   itemCount: docs.length,
@@ -434,9 +546,11 @@ class _FeedScreenAdminState extends State<FeedScreenAdmin> {
                     final data = docs[index].data();
                     final text = data['text'] as String? ?? '';
                     // Support multiple images like the client app and fall back to legacy keys
-                    List<String> mediaUrls = (data['mediaUrls'] as List<dynamic>?)
+                    List<String> mediaUrls =
+                        (data['mediaUrls'] as List<dynamic>?)
                             ?.map((e) => e as String)
-                            .toList() ?? [];
+                            .toList() ??
+                        [];
                     if (mediaUrls.isEmpty &&
                         data['mediaUrl'] is String &&
                         (data['mediaUrl'] as String).isNotEmpty) {
@@ -445,15 +559,21 @@ class _FeedScreenAdminState extends State<FeedScreenAdmin> {
                     final String? imageUrl = mediaUrls.isNotEmpty
                         ? mediaUrls.first
                         : data['imageUrl'] as String?;
-                    final authorName = data['authorName'] as String? ?? 'Utilisateur';
+                    final authorName =
+                        data['authorName'] as String? ?? 'Utilisateur';
                     final authorPhotoUrl = data['authorPhotoUrl'] as String?;
                     final likes = List<String>.from(data['likes'] ?? []);
-                    final comments = List<Map<String, dynamic>>.from(data['comments'] ?? []);
-                    final commentsCount = (data['commentsCount'] as int?) ?? comments.length;
-                    final createdAt = (data['createdAt'] as Timestamp?)?.toDate();
+                    final comments = List<Map<String, dynamic>>.from(
+                      data['comments'] ?? [],
+                    );
+                    final commentsCount =
+                        (data['commentsCount'] as int?) ?? comments.length;
+                    final createdAt = (data['createdAt'] as Timestamp?)
+                        ?.toDate();
                     final postId = docs[index].id;
                     final currentUser = FirebaseAuth.instance.currentUser;
-                    final isLiked = currentUser != null && likes.contains(currentUser.uid);
+                    final isLiked =
+                        currentUser != null && likes.contains(currentUser.uid);
                     return Card(
                       margin: const EdgeInsets.symmetric(
                         vertical: 8,
@@ -470,15 +590,24 @@ class _FeedScreenAdminState extends State<FeedScreenAdmin> {
                           children: [
                             ListTile(
                               leading: CircleAvatar(
-                                backgroundImage: authorPhotoUrl != null ? NetworkImage(authorPhotoUrl) : null,
-                                child: authorPhotoUrl == null ? const Icon(Icons.person) : null,
+                                backgroundImage: authorPhotoUrl != null
+                                    ? NetworkImage(authorPhotoUrl)
+                                    : null,
+                                child: authorPhotoUrl == null
+                                    ? const Icon(Icons.person)
+                                    : null,
                               ),
                               title: Text(authorName),
                               subtitle: createdAt != null
-                                  ? Text('${createdAt.day}/${createdAt.month}/${createdAt.year} à ${createdAt.hour}h${createdAt.minute.toString().padLeft(2, '0')}')
+                                  ? Text(
+                                      '${createdAt.day}/${createdAt.month}/${createdAt.year} à ${createdAt.hour}h${createdAt.minute.toString().padLeft(2, '0')}',
+                                    )
                                   : null,
                               trailing: IconButton(
-                                icon: const Icon(Icons.delete, color: Colors.redAccent),
+                                icon: const Icon(
+                                  Icons.delete,
+                                  color: Colors.redAccent,
+                                ),
                                 onPressed: () => _confirmDelete(postId),
                                 tooltip: 'Supprimer la publication',
                               ),
@@ -496,16 +625,24 @@ class _FeedScreenAdminState extends State<FeedScreenAdmin> {
                                     fit: BoxFit.cover,
                                     loadingBuilder: (context, child, progress) {
                                       if (progress == null) return child;
-                                      return const Center(child: CircularProgressIndicator());
+                                      return const Center(
+                                        child: CircularProgressIndicator(),
+                                      );
                                     },
                                     errorBuilder: (context, error, stack) =>
-                                        const Center(child: Text("Impossible d'afficher l'image")),
+                                        const Center(
+                                          child: Text(
+                                            "Impossible d'afficher l'image",
+                                          ),
+                                        ),
                                   ),
                                 ),
                               ),
                             if (text.isNotEmpty) ...[
                               Padding(
-                                padding: const EdgeInsets.symmetric(vertical: 8.0),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 8.0,
+                                ),
                                 child: Text(text),
                               ),
                             ],
@@ -516,23 +653,38 @@ class _FeedScreenAdminState extends State<FeedScreenAdmin> {
                               children: [
                                 Expanded(
                                   child: TextButton.icon(
-                                    style: TextButton.styleFrom(foregroundColor: isLiked ? Colors.blueAccent : null),
-                                    onPressed: currentUser == null ? null : () => _toggleLike(postId, isLiked),
-                                    icon: Icon(isLiked ? Icons.thumb_up : Icons.thumb_up_off_alt),
+                                    style: TextButton.styleFrom(
+                                      foregroundColor: isLiked
+                                          ? Colors.blueAccent
+                                          : null,
+                                    ),
+                                    onPressed: currentUser == null
+                                        ? null
+                                        : () => _toggleLike(postId, isLiked),
+                                    icon: Icon(
+                                      isLiked
+                                          ? Icons.thumb_up
+                                          : Icons.thumb_up_off_alt,
+                                    ),
                                     label: Text('${likes.length}'),
                                   ),
                                 ),
                                 Expanded(
                                   child: TextButton.icon(
-                                    onPressed: () => _showCommentsSheet(context, postId),
+                                    onPressed: () =>
+                                        _showCommentsSheet(context, postId),
                                     icon: const Icon(Icons.comment_outlined),
                                     label: Text('$commentsCount'),
                                   ),
                                 ),
                                 Expanded(
                                   child: TextButton.icon(
-                                    onPressed: () => _showReportDialog(context, postId),
-                                    icon: const Icon(Icons.flag_outlined, color: Colors.redAccent),
+                                    onPressed: () =>
+                                        _showReportDialog(context, postId),
+                                    icon: const Icon(
+                                      Icons.flag_outlined,
+                                      color: Colors.redAccent,
+                                    ),
                                     label: const Text('Signaler'),
                                   ),
                                 ),

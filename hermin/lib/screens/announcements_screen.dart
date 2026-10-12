@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'dart:ui' show FontFeature;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:just_audio/just_audio.dart';
@@ -54,12 +53,7 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
     return value;
   }
 
-  // Couleurs du thème
-  final Color _primaryColor = const Color(0xFF4F6F52);
-  final Color _accentColor = const Color(0xFF86A789);
-  final Color _backgroundColor = const Color(0xFFF5EFE6);
-  final Color _cardColor = Colors.white;
-
+  
   @override
   void initState() {
     super.initState();
@@ -101,7 +95,7 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [_primaryColor, _primaryColor.withOpacity(0.8)],
+          colors: [Theme.of(context).colorScheme.primary, Theme.of(context).colorScheme.primary.withValues(alpha: 0.8)],
         ),
         borderRadius: const BorderRadius.only(
           bottomLeft: Radius.circular(30),
@@ -109,7 +103,7 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -132,7 +126,7 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
           Text(
             'Restez informé des dernières actualités',
             style: TextStyle(
-              color: Colors.white.withOpacity(0.9),
+              color: Colors.white.withValues(alpha: 0.9),
               fontSize: 16,
             ),
           ),
@@ -143,7 +137,7 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
               borderRadius: BorderRadius.circular(12),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
+                  color: Colors.black.withValues(alpha: 0.05),
                   blurRadius: 10,
                   offset: const Offset(0, 4),
                 ),
@@ -180,10 +174,10 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
         label: Text(label),
         selected: isSelected,
         onSelected: (_) => onTap(),
-        backgroundColor: Colors.grey[200],
-        selectedColor: _primaryColor,
+        backgroundColor: Colors.blue[100],
+        selectedColor: Colors.blue[700],
         labelStyle: TextStyle(
-          color: isSelected ? Colors.white : Colors.black87,
+          color: isSelected ? Colors.white : Colors.grey[600],
           fontWeight: FontWeight.w500,
         ),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -233,9 +227,9 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(15),
-            color: _cardColor,
+            color: Theme.of(context).colorScheme.surface,
             border: isNew
-                ? Border.all(color: _accentColor.withOpacity(0.5), width: 1.5)
+                ? Border.all(color: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.5), width: 1.5)
                 : null,
           ),
           child: Column(
@@ -246,12 +240,12 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: _primaryColor.withOpacity(0.1),
+                      color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Icon(
                       type == 'audio' ? Icons.volume_up : Icons.announcement,
-                      color: _primaryColor,
+                      color: Theme.of(context).colorScheme.primary,
                       size: 24,
                     ),
                   ),
@@ -287,14 +281,14 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
                         vertical: 4,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.red.shade50,
+                        color: Colors.blue[100],
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.red.shade100),
+                        border: Border.all(color: Colors.blue[200]!),
                       ),
                       child: Text(
                         'Nouveau',
                         style: TextStyle(
-                          color: Colors.red.shade700,
+                          color: Colors.blue[700],
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
                         ),
@@ -328,13 +322,13 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.red[50],
+                    color: Colors.blue[100],
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.red[100]!),
+                    border: Border.all(color: Colors.blue[100]!),
                   ),
                   child: Row(
                     children: [
-                      Icon(Icons.error_outline, color: Colors.red[700]),
+                      Icon(Icons.error_outline, color: Colors.blue[700]),
                       const SizedBox(width: 8),
                       const Expanded(
                         child: Text('Audio indisponible pour cette annonce'),
@@ -356,13 +350,13 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
                             vertical: 4,
                           ),
                           decoration: BoxDecoration(
-                            color: _primaryColor.withOpacity(0.1),
+                            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Text(
                             category.toString(),
                             style: TextStyle(
-                              color: _primaryColor,
+                              color: Theme.of(context).colorScheme.primary,
                               fontSize: 12,
                               fontWeight: FontWeight.w500,
                             ),
@@ -393,7 +387,7 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
               borderRadius: BorderRadius.circular(15),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
+                  color: Colors.black.withValues(alpha: 0.05),
                   blurRadius: 10,
                   offset: const Offset(0, 4),
                 ),
@@ -437,7 +431,7 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
     final uid = FirebaseAuth.instance.currentUser?.uid;
 
     return Scaffold(
-      backgroundColor: _backgroundColor,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: FutureBuilder<DocumentSnapshot<Map<String, dynamic>>>(
         future: uid != null
             ? FirebaseFirestore.instance.collection('users').doc(uid).get()
@@ -462,7 +456,7 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
                     Icon(
                       Icons.warning_amber_rounded,
                       size: 64,
-                      color: Colors.orange[400],
+                      color: Colors.grey[400],
                     ),
                     const SizedBox(height: 20),
                     const Text(
@@ -485,7 +479,7 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
                         // Naviguer vers l'écran de profil
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: _primaryColor,
+                        backgroundColor: Theme.of(context).colorScheme.primary,
                         padding: const EdgeInsets.symmetric(
                           horizontal: 32,
                           vertical: 12,
@@ -512,7 +506,7 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
           // Subscribe once to FCM topic for background notifications (only valid topic names)
           final normalizedCategory = _normalizeCategory(category);
           final candidateTopic = _sanitizeTopicName(
-            'category_${normalizedCategory}',
+            'category_$normalizedCategory',
           );
           if (candidateTopic != null && _subscribedTopic != candidateTopic) {
             _subscribedTopic = candidateTopic;
@@ -573,7 +567,7 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
                             Icon(
                               Icons.error_outline,
                               size: 48,
-                              color: Colors.red[300],
+                              color: Colors.grey[400],
                             ),
                             const SizedBox(height: 16),
                             const Text(
@@ -638,7 +632,7 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
                         setState(() {});
                         return Future.delayed(const Duration(seconds: 1));
                       },
-                      color: _primaryColor,
+                      color: Theme.of(context).colorScheme.primary,
                       child: ListView.builder(
                         controller: _scrollController,
                         padding: const EdgeInsets.only(bottom: 20),
@@ -667,7 +661,7 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
             curve: Curves.easeInOut,
           );
         },
-        backgroundColor: _primaryColor,
+        backgroundColor: Theme.of(context).colorScheme.primary,
         child: const Icon(Icons.arrow_upward, color: Colors.white),
       ),
     );
@@ -702,7 +696,6 @@ class _AudioAnnouncementTileState extends State<AudioAnnouncementTile> {
   Duration _duration = Duration.zero;
   Duration _position = Duration.zero;
   bool _isDragging = false;
-  final _primaryColor = const Color(0xFF4F6F52);
 
   @override
   void initState() {
@@ -749,10 +742,12 @@ class _AudioAnnouncementTileState extends State<AudioAnnouncementTile> {
           uri != null && (uri.scheme == 'https' || uri.scheme == 'http');
       final supportedExt =
           uri != null &&
-          RegExp(
-            r"\.(mp3|m4a|aac|wav|ogg)",
+          (RegExp(
+            r".(mp3|m4a|aac|wav|ogg)",
             caseSensitive: false,
-          ).hasMatch(uri.path);
+          ).hasMatch(uri.path) ||
+          uri.path.contains('/audio/') ||
+          uri.path.contains('/video/'));
       if (!isHttp || !supportedExt) {
         throw Exception('Format ou URL audio non pris en charge');
       }
@@ -807,12 +802,12 @@ class _AudioAnnouncementTileState extends State<AudioAnnouncementTile> {
     if (_loading) {
       return ListTile(
         leading: CircleAvatar(
-          child: const Icon(Icons.campaign),
           backgroundImage:
               (widget.authorPhotoUrl != null &&
                   widget.authorPhotoUrl!.isNotEmpty)
               ? NetworkImage(widget.authorPhotoUrl!)
               : null,
+          child: const Icon(Icons.campaign),
         ),
         title: Text(
           widget.authorName,
@@ -830,16 +825,16 @@ class _AudioAnnouncementTileState extends State<AudioAnnouncementTile> {
       return Container(
         padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
         decoration: BoxDecoration(
-          color: Colors.red[50],
+          color: Colors.blue[100],
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.red[100]!),
+          border: Border.all(color: Colors.blue[100]!),
         ),
         child: Row(
           children: [
-            Icon(Icons.error_outline, color: Colors.red[700]),
+            Icon(Icons.error_outline, color: Colors.blue[700]),
             const SizedBox(width: 12),
             Expanded(
-              child: Text(_error!, style: TextStyle(color: Colors.red[800])),
+              child: Text(_error!, style: TextStyle(color: Colors.blue[700])),
             ),
           ],
         ),
@@ -849,11 +844,11 @@ class _AudioAnnouncementTileState extends State<AudioAnnouncementTile> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: _isPlaying ? _primaryColor.withOpacity(0.1) : Colors.grey[100],
+        color: _isPlaying ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.1) : Colors.grey[100],
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: _isPlaying
-              ? _primaryColor.withOpacity(0.3)
+              ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.3)
               : Colors.grey[200]!,
           width: 1.5,
         ),
@@ -908,11 +903,11 @@ class _AudioAnnouncementTileState extends State<AudioAnnouncementTile> {
                   width: 40,
                   height: 40,
                   decoration: BoxDecoration(
-                    color: _primaryColor,
+                    color: Theme.of(context).colorScheme.primary,
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                        color: _primaryColor.withOpacity(0.3),
+                        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
                         blurRadius: 8,
                         offset: const Offset(0, 3),
                       ),
@@ -947,7 +942,7 @@ class _AudioAnnouncementTileState extends State<AudioAnnouncementTile> {
                     // Barre de progression
                     SliderTheme(
                       data: SliderTheme.of(context).copyWith(
-                        activeTrackColor: _primaryColor,
+                        activeTrackColor: Theme.of(context).colorScheme.primary,
                         inactiveTrackColor: Colors.grey[300],
                         trackHeight: 4,
                         thumbShape: const RoundSliderThumbShape(
@@ -957,8 +952,8 @@ class _AudioAnnouncementTileState extends State<AudioAnnouncementTile> {
                         overlayShape: const RoundSliderOverlayShape(
                           overlayRadius: 16,
                         ),
-                        thumbColor: _primaryColor,
-                        overlayColor: _primaryColor.withOpacity(0.2),
+                        thumbColor: Theme.of(context).colorScheme.primary,
+                        overlayColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
                       ),
                       child: Slider(
                         value: _position.inSeconds.toDouble(),
@@ -1009,3 +1004,9 @@ class _AudioAnnouncementTileState extends State<AudioAnnouncementTile> {
     );
   }
 }
+
+
+
+
+
+

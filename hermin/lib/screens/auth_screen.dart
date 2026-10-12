@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../ui/components/app_button.dart';
+import '../ui/components/app_card.dart';
+import '../ui/components/state_widgets.dart';
+import '../ui/components/app_text_field.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -17,33 +21,32 @@ class _AuthScreenState extends State<AuthScreen> {
   final _lastNameController = TextEditingController();
   final _phoneController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
+
   bool _obscure = true;
   bool _loading = false;
   String? _error;
   bool _isSignUp = false;
-  String? _category; // 'parent' | 'élève'
+  String? _category;
 
   String _friendlyAuthError(FirebaseAuthException e, {bool isSignUp = false}) {
     switch (e.code) {
       case 'network-request-failed':
-        return 'Connexion impossible. Vérifie ta connexion internet et réessaie.';
+        return 'Connexion impossible. Verifie ta connexion internet et reessaie.';
       case 'invalid-credential':
       case 'invalid-email':
       case 'user-not-found':
       case 'wrong-password':
         return 'Email ou mot de passe incorrect.';
       case 'too-many-requests':
-        return 'Trop de tentatives. Réessaie dans quelques instants.';
+        return 'Trop de tentatives. Reessaie dans quelques instants.';
       case 'email-already-in-use':
         return isSignUp
-            ? 'Cet email est déjà utilisé. Connecte-toi ou choisis un autre email.'
-            : 'Email déjà utilisé.';
+            ? 'Cet email est deja utilise. Connecte-toi ou choisis un autre email.'
+            : 'Email deja utilise.';
       case 'weak-password':
-        return 'Mot de passe trop faible. Utilise au moins 6 caractères.';
+        return 'Mot de passe trop faible. Utilise au moins 6 caracteres.';
       default:
-        return isSignUp
-            ? 'Création du compte impossible. Réessaie.'
-            : 'Connexion impossible. Réessaie.';
+        return isSignUp ? 'Creation du compte impossible. Reessaie.' : 'Connexion impossible. Reessaie.';
     }
   }
 
@@ -66,11 +69,8 @@ class _AuthScreenState extends State<AuthScreen> {
       }
     } on FirebaseAuthException catch (e) {
       setState(() => _error = _friendlyAuthError(e));
-    } on FirebaseException catch (_) {
-      setState(
-        () => _error =
-            'Connexion impossible. Vérifie ta connexion internet et réessaie.',
-      );
+    } on FirebaseException {
+      setState(() => _error = 'Connexion impossible. Verifie ta connexion internet et reessaie.');
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -79,13 +79,14 @@ class _AuthScreenState extends State<AuthScreen> {
   Future<void> _signUp() async {
     if (!_formKey.currentState!.validate()) return;
     if (_category == null) {
-      setState(() => _error = 'Veuillez choisir une catégorie');
+      setState(() => _error = 'Veuillez choisir une categorie');
       return;
     }
     setState(() {
       _loading = true;
       _error = null;
     });
+
     try {
       final cred = await FirebaseAuth.instance.createUserWithEmailAndPassword(
         email: _emailController.text.trim(),
@@ -95,41 +96,34 @@ class _AuthScreenState extends State<AuthScreen> {
       final first = _firstNameController.text.trim();
       final last = _lastNameController.text.trim();
       final display = [first, last].where((e) => e.isNotEmpty).join(' ').trim();
+
       if (display.isNotEmpty) {
         await user.updateDisplayName(display);
       }
-      final uid = user.uid;
 
-      // Générer les keywords pour la recherche
       final keywords = <String>{};
       if (first.isNotEmpty) {
-        keywords.add(first.toLowerCase());
         for (int i = 1; i <= first.length; i++) {
           keywords.add(first.toLowerCase().substring(0, i));
         }
       }
       if (last.isNotEmpty) {
-        keywords.add(last.toLowerCase());
         for (int i = 1; i <= last.length; i++) {
           keywords.add(last.toLowerCase().substring(0, i));
         }
       }
-      final phone = _phoneController.text.trim();
-      if (phone.isNotEmpty) {
-        keywords.add(phone);
-      }
 
-      await FirebaseFirestore.instance.collection('users').doc(uid).set({
-        'uid': uid,
+      await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+        'uid': user.uid,
         'username': display.isNotEmpty ? display : _emailController.text.trim(),
         'firstName': first,
         'lastName': last,
         'email': _emailController.text.trim(),
-        'phone': phone.isEmpty ? null : phone,
+        'phone': _phoneController.text.trim().isEmpty ? null : _phoneController.text.trim(),
         'category': _category,
         'role': _category,
         'photoUrl': user.photoURL,
-        'keywords': keywords.toList(), // Pour la recherche
+        'keywords': keywords.toList(),
         'createdAt': FieldValue.serverTimestamp(),
         'updatedAt': FieldValue.serverTimestamp(),
         'lastLoginAt': FieldValue.serverTimestamp(),
@@ -137,11 +131,8 @@ class _AuthScreenState extends State<AuthScreen> {
       }, SetOptions(merge: true));
     } on FirebaseAuthException catch (e) {
       setState(() => _error = _friendlyAuthError(e, isSignUp: true));
-    } on FirebaseException catch (_) {
-      setState(
-        () => _error =
-            'Création du compte impossible. Vérifie ta connexion internet et réessaie.',
-      );
+    } on FirebaseException {
+      setState(() => _error = 'Creation du compte impossible. Verifie ta connexion internet et reessaie.');
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -150,9 +141,7 @@ class _AuthScreenState extends State<AuthScreen> {
   Future<void> _resetPassword() async {
     final email = _emailController.text.trim();
     if (email.isEmpty) {
-      setState(
-        () => _error = 'Entrez votre email pour réinitialiser le mot de passe',
-      );
+      setState(() => _error = 'Entrez votre email pour reinitialiser le mot de passe');
       return;
     }
     setState(() {
@@ -162,9 +151,7 @@ class _AuthScreenState extends State<AuthScreen> {
     try {
       await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Email de réinitialisation envoyé')),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Email de reinitialisation envoye')));
       }
     } on FirebaseAuthException catch (e) {
       setState(() => _error = e.message);
@@ -186,306 +173,124 @@ class _AuthScreenState extends State<AuthScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
     return Scaffold(
-      appBar: AppBar(title: const Text('LEAURRY-FLORIDE')),
-      body: Stack(
-        children: [
-          Positioned.fill(
-            child: Container(
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Color(0xFF1976D2), Color(0xFF64B5F6)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-              ),
-            ),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [cs.primary, cs.primaryContainer],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
           ),
-          Align(
-            alignment: Alignment.topCenter,
-            child: Padding(
-              padding: const EdgeInsets.only(top: 80.0),
-              child: Text(
-                _isSignUp ? "Créer un compte" : "Connexion...",
-                style: const TextStyle(
-                  fontSize: 32,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF1976D2),
-                  shadows: [
-                    Shadow(
-                      color: Colors.white,
-                      blurRadius: 8,
-                      offset: Offset(0, 2),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          Center(
+        ),
+        child: SafeArea(
+          child: Center(
             child: SingleChildScrollView(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 24.0,
-                  vertical: 16,
-                ),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.85),
-                    borderRadius: BorderRadius.circular(32),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.blue.withOpacity(0.12),
-                        blurRadius: 16,
-                        offset: const Offset(0, 8),
-                      ),
-                    ],
-                  ),
-                  padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(20),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 520),
+                child: AppCard(
                   child: Form(
                     key: _formKey,
                     child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        const SizedBox(height: 12),
+                        Text(_isSignUp ? 'Creer un compte' : 'Connexion', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700)),
+                        const SizedBox(height: 8),
+                        Text('Bienvenue sur LEAURRY-FLORIDE', style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant)),
+                        const SizedBox(height: 20),
                         if (_isSignUp) ...[
                           Row(
                             children: [
                               Expanded(
-                                child: TextFormField(
+                                child: AppTextField(
                                   controller: _firstNameController,
-                                  decoration: InputDecoration(
-                                    prefixIcon: const Icon(
-                                      Icons.person,
-                                      color: Color(0xFF1976D2),
-                                    ),
-                                    labelText: 'Prénom',
-                                    filled: true,
-                                    fillColor: const Color(0xFFE3F2FD),
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(16),
-                                      borderSide: BorderSide.none,
-                                    ),
-                                  ),
-                                  validator: (v) =>
-                                      v == null || v.isEmpty ? 'Requis' : null,
+                                  label: 'Prenom',
+                                  prefix: const Icon(Icons.person_outline),
+                                  validator: (v) => v == null || v.isEmpty ? 'Requis' : null,
                                 ),
                               ),
                               const SizedBox(width: 12),
                               Expanded(
-                                child: TextFormField(
+                                child: AppTextField(
                                   controller: _lastNameController,
-                                  decoration: InputDecoration(
-                                    prefixIcon: const Icon(
-                                      Icons.person_outline,
-                                      color: Color(0xFF1976D2),
-                                    ),
-                                    labelText: 'Nom',
-                                    filled: true,
-                                    fillColor: const Color(0xFFE3F2FD),
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(16),
-                                      borderSide: BorderSide.none,
-                                    ),
-                                  ),
-                                  validator: (v) =>
-                                      v == null || v.isEmpty ? 'Requis' : null,
+                                  label: 'Nom',
+                                  prefix: const Icon(Icons.badge_outlined),
+                                  validator: (v) => v == null || v.isEmpty ? 'Requis' : null,
                                 ),
                               ),
                             ],
                           ),
-                          const SizedBox(height: 16),
-                          TextFormField(
-                            controller: _phoneController,
-                            keyboardType: TextInputType.phone,
-                            decoration: InputDecoration(
-                              prefixIcon: const Icon(
-                                Icons.phone,
-                                color: Color(0xFF1976D2),
-                              ),
-                              labelText: 'Téléphone (optionnel)',
-                              filled: true,
-                              fillColor: const Color(0xFFE3F2FD),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(16),
-                                borderSide: BorderSide.none,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 16),
+                          const SizedBox(height: 12),
+                          AppTextField(controller: _phoneController, label: 'Telephone (optionnel)', prefix: const Icon(Icons.phone_outlined), keyboardType: TextInputType.phone),
+                          const SizedBox(height: 12),
                         ],
-                        TextFormField(
+                        AppTextField(
                           controller: _emailController,
+                          label: 'Email',
+                          prefix: const Icon(Icons.alternate_email),
                           keyboardType: TextInputType.emailAddress,
-                          decoration: InputDecoration(
-                            prefixIcon: const Icon(
-                              Icons.email,
-                              color: Color(0xFF1976D2),
-                            ),
-                            labelText: 'Email',
-                            filled: true,
-                            fillColor: const Color(0xFFE3F2FD),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(16),
-                              borderSide: BorderSide.none,
-                            ),
-                          ),
-                          validator: (v) =>
-                              v == null || v.isEmpty ? 'Requis' : null,
+                          validator: (v) => v == null || v.isEmpty ? 'Requis' : null,
                         ),
-                        const SizedBox(height: 16),
-                        TextFormField(
+                        const SizedBox(height: 12),
+                        AppTextField(
                           controller: _passwordController,
-                          decoration: InputDecoration(
-                            prefixIcon: const Icon(
-                              Icons.lock,
-                              color: Color(0xFF1976D2),
-                            ),
-                            labelText: 'Mot de passe',
-                            filled: true,
-                            fillColor: const Color(0xFFE3F2FD),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(16),
-                              borderSide: BorderSide.none,
-                            ),
-                            suffixIcon: IconButton(
-                              icon: Icon(
-                                _obscure
-                                    ? Icons.visibility
-                                    : Icons.visibility_off,
-                                color: const Color(0xFF1976D2),
-                              ),
-                              onPressed: () =>
-                                  setState(() => _obscure = !_obscure),
-                            ),
-                          ),
+                          label: 'Mot de passe',
                           obscureText: _obscure,
-                          validator: (v) => v == null || v.length < 6
-                              ? 'Min 6 caractères'
-                              : null,
+                          prefix: const Icon(Icons.lock_outline),
+                          suffix: IconButton(
+                            onPressed: () => setState(() => _obscure = !_obscure),
+                            icon: Icon(_obscure ? Icons.visibility : Icons.visibility_off),
+                          ),
+                          validator: (v) => v == null || v.length < 6 ? 'Min 6 caracteres' : null,
                         ),
                         if (_isSignUp) ...[
-                          const SizedBox(height: 16),
-                          TextFormField(
+                          const SizedBox(height: 12),
+                          AppTextField(
                             controller: _confirmPasswordController,
-                            decoration: InputDecoration(
-                              prefixIcon: const Icon(
-                                Icons.lock_outline,
-                                color: Color(0xFF1976D2),
-                              ),
-                              labelText: 'Confirmer le mot de passe',
-                              filled: true,
-                              fillColor: const Color(0xFFE3F2FD),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(16),
-                                borderSide: BorderSide.none,
-                              ),
-                            ),
+                            label: 'Confirmer le mot de passe',
                             obscureText: _obscure,
-                            validator: (v) => v != _passwordController.text
-                                ? 'Ne correspond pas'
-                                : null,
+                            prefix: const Icon(Icons.password_outlined),
+                            validator: (v) => v != _passwordController.text ? 'Ne correspond pas' : null,
                           ),
-                          const SizedBox(height: 16),
+                          const SizedBox(height: 12),
                           DropdownButtonFormField<String>(
-                            value: _category,
-                            decoration: InputDecoration(
-                              prefixIcon: const Icon(
-                                Icons.group,
-                                color: Color(0xFF1976D2),
-                              ),
-                              labelText: 'Catégorie',
-                              filled: true,
-                              fillColor: const Color(0xFFE3F2FD),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(16),
-                                borderSide: BorderSide.none,
-                              ),
-                            ),
+                            initialValue: _category,
+                            decoration: const InputDecoration(labelText: 'Categorie', prefixIcon: Icon(Icons.group_outlined)),
                             items: const [
-                              DropdownMenuItem(
-                                value: 'parent',
-                                child: Text('Parent'),
-                              ),
-                              DropdownMenuItem(
-                                value: 'eleve',
-                                child: Text('Élève'),
-                              ), // <-- 'eleve' sans accent
+                              DropdownMenuItem(value: 'parent', child: Text('Parent')),
+                              DropdownMenuItem(value: 'eleve', child: Text('Eleve')),
                             ],
                             onChanged: (v) => setState(() => _category = v),
                             validator: (v) => v == null ? 'Requis' : null,
                           ),
                         ],
-                        const SizedBox(height: 16),
-                        Row(
-                          children: [
-                            const Text(
-                              'Ne pas oublier',
-                              style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const Spacer(),
-                            TextButton(
-                              onPressed: _loading ? null : _resetPassword,
-                              child: const Text(
-                                'Mot de passe oublié ?',
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                          ],
+                        const SizedBox(height: 8),
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: TextButton(onPressed: _loading ? null : _resetPassword, child: const Text('Mot de passe oublie ?')),
                         ),
-                        const SizedBox(height: 12),
                         if (_error != null) ...[
-                          Text(
-                            _error!,
-                            style: const TextStyle(color: Colors.red),
-                          ),
                           const SizedBox(height: 8),
+                          AppErrorState(message: _error!),
                         ],
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton(
-                            onPressed: _loading
-                                ? null
-                                : () => _isSignUp ? _signUp() : _signIn(),
-                            child: _loading
-                                ? const SizedBox(
-                                    height: 20,
-                                    width: 20,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                    ),
-                                  )
-                                : Text(
-                                    _isSignUp
-                                        ? 'Créer mon compte'
-                                        : 'Se connecter',
-                                    style: const TextStyle(fontSize: 20),
-                                  ),
-                          ),
+                        const SizedBox(height: 12),
+                        AppButton(
+                          label: _isSignUp ? 'Creer mon compte' : 'Se connecter',
+                          onPressed: _loading ? null : () => _isSignUp ? _signUp() : _signIn(),
+                          loading: _loading,
+                          size: AppButtonSize.lg,
                         ),
                         const SizedBox(height: 8),
                         TextButton(
                           onPressed: _loading
                               ? null
-                              : () {
-                                  setState(() {
+                              : () => setState(() {
                                     _isSignUp = !_isSignUp;
                                     _error = null;
-                                  });
-                                },
-                          child: Text(
-                            _isSignUp
-                                ? 'J\'ai déjà un compte'
-                                : 'Créer un compte',
-                          ),
+                                  }),
+                          child: Text(_isSignUp ? 'J\'ai deja un compte' : 'Creer un compte'),
                         ),
                       ],
                     ),
@@ -494,8 +299,14 @@ class _AuthScreenState extends State<AuthScreen> {
               ),
             ),
           ),
-        ],
+        ),
       ),
     );
   }
 }
+
+
+
+
+
+
